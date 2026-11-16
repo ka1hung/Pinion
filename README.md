@@ -44,64 +44,128 @@
 
 ## 下載與安裝
 
-到 [Releases](https://github.com/ka1hung/pinion/releases) 下載：
+到 [Releases](https://github.com/ka1hung/pinion/releases) 下載對應平台的檔案：
 
-| 平台 | 檔案 | 第一次開啟 |
+| 平台 | 建議下載 | 其他選擇 |
 | --- | --- | --- |
-| Windows 10 / 11（x64） | `Pinion-<版本>-windows-x64.zip`（免安裝）或 `…-setup.exe` | 尚未簽章，SmartScreen 會警告：按「其他資訊」→「仍要執行」 |
-| macOS（Apple Silicon） | `Pinion-<版本>-macos-arm64.zip` | 尚未公證：在 Finder 對 Pinion.app 按右鍵 →「打開」，或執行下方指令 |
-| Linux（x64，Ubuntu 24.04+） | `Pinion-<版本>-linux-x64.tar.gz` 或 `.deb` | 需要 GTK4 與 WebKitGTK 6.0 |
+| Windows 10 / 11（x64） | `Pinion-<版本>-windows-x64-setup.exe`（安裝版） | `…-windows-x64.zip`（免安裝） |
+| macOS 12 以上（Apple Silicon） | `Pinion-<版本>-macos-arm64.zip` | — |
+| Linux（x64，Ubuntu 24.04 以上） | `Pinion-<版本>-linux-x64.deb` | `…-linux-x64.tar.gz` |
 
-用 `SHA256SUMS.txt` 核對下載的檔案：
+### Windows
 
-```bash
-sha256sum -c SHA256SUMS.txt --ignore-missing
-```
+**安裝版（setup.exe）**
 
-Windows（PowerShell）：
+1. 執行 `Pinion-<版本>-windows-x64-setup.exe`。
+2. 程式尚未簽章，SmartScreen 會跳出「Windows 已保護您的電腦」：按「其他資訊」→「仍要執行」。
+3. 允許系統管理員權限（UAC），照畫面安裝。
+4. 安裝完成後會在「開始」功能表和桌面建立捷徑。
 
-```bash
-Get-FileHash .\Pinion-<版本>-windows-x64.zip
-```
+安裝位置是 `C:\Program Files\Pinion\Pinion`。電腦缺少 WebView2 時，安裝程式會自動安裝（Windows 11 已內建）。
 
-Windows 若提示缺少 WebView2（Windows 11 已內建）：
+移除：「設定」→「應用程式」→ 找到 Pinion →「解除安裝」。
 
-```bash
+**免安裝版（zip）**
+
+解壓縮到任意資料夾（例如隨身碟），直接執行 `Pinion.exe`。不需要系統管理員權限，也不會寫入登錄檔。
+
+若開啟時提示缺少 WebView2（通常只有 Windows 10 會遇到）：
+
+```powershell
 winget install Microsoft.EdgeWebView2Runtime
 ```
 
-macOS 解除隔離屬性：
+**其他注意事項**
+
+- **Serial**：插上 USB 轉序列線後會出現在 COM 埠清單。如果沒有出現，到「裝置管理員」確認驅動程式；CH340、CP210x、PL2303 可能需要到晶片廠商網站下載驅動程式。
+- **臨時伺服器**：第一次啟動 TFTP / HTTP / FTP 時，Windows 防火牆會詢問是否允許，請勾選要開放的網路類型。
+
+### macOS
+
+目前只提供 Apple Silicon（M1 以上）版本，Intel Mac 無法執行。
+
+1. 解壓縮 `Pinion-<版本>-macos-arm64.zip`，把 `Pinion.app` 拖到「應用程式」資料夾。
+2. 程式尚未經過 Apple 公證，第一次開啟會被擋下。依 macOS 版本處理：
+   - **macOS 15 以上**：先開一次被擋下後，到「系統設定」→「隱私權與安全性」，在下方找到 Pinion 的提示，按「仍要打開」（Open Anyway）。
+   - **macOS 14 以下**：在 Finder 對 `Pinion.app` 按右鍵 →「打開」→ 再按一次「打開」。
+   - 或在終端機執行下面這行，之後就能直接開啟：
+
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/Pinion.app
+     ```
+
+**其他注意事項**
+
+- **Serial**：請選 `/dev/cu.*` 開頭的裝置，`/dev/tty.*` 會等待載波訊號而卡住。
+- **臨時伺服器**：有開啟 macOS 防火牆的話，第一次啟動時會詢問是否允許連入。
+
+移除：把「應用程式」裡的 `Pinion.app` 丟到垃圾桶。設定與 Session 存在 `~/Library/Application Support/Pinion`，要一併清除就刪掉這個資料夾。
+
+### Linux
+
+需要 GTK 4 與 WebKitGTK 6.0，Ubuntu 24.04、Debian 13 以上才有。Ubuntu 22.04 無法執行。
+
+**.deb（Ubuntu / Debian，建議）**
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Pinion.app
+sudo apt install ./Pinion-<版本>-linux-x64.deb
 ```
 
-Linux 執行期套件：
+用 `apt install ./檔名` 安裝會自動補齊相依套件，並且：
+
+- 把 Pinion 加進應用程式選單；
+- 允許 TFTP 使用 69 埠，不必用 root 執行；
+- 安裝 AppArmor 設定檔。Ubuntu 23.10 以後預設限制一般程式建立 user namespace，Pinion 介面用的 WebKitGTK 沙箱需要這個權限，沒有的話會只看到空白視窗或直接關閉。這個設定檔只對 Pinion 生效。
+
+移除：
 
 ```bash
+sudo apt remove pinion
+```
+
+**.tar.gz（其他發行版或不想用套件管理）**
+
+```bash
+# 1. 安裝執行期套件（Ubuntu / Debian）
 sudo apt install libgtk-4-1 libwebkitgtk-6.0-4
-```
 
-Linux 使用 Serial 埠需加入 `dialout` 群組（重新登入後生效）：
+# 2. 解壓縮並放到 /usr/local/bin
+tar -xzf Pinion-<版本>-linux-x64.tar.gz
+sudo install -m 0755 Pinion /usr/local/bin/Pinion
 
-```bash
-sudo usermod -aG dialout "$USER"
-```
-
-Linux 上 TFTP 使用 69 埠需要授權（`.deb` 安裝時會自動設定）：
-
-```bash
+# 3. 允許 TFTP 使用 69 埠（不用 TFTP 可略過）
 sudo setcap cap_net_bind_service=+ep /usr/local/bin/Pinion
-```
 
-Ubuntu 23.10 以後用 AppArmor 限制一般程式建立 user namespace，Pinion 介面用的 WebKitGTK 沙箱（bubblewrap）會因此無法啟動，打開只看到空白視窗或直接關閉。`.deb` 安裝時會自動放一個只對 Pinion 生效的 AppArmor 設定檔；用 `.tar.gz` 的話，把 `Pinion` 放到 `/usr/local/bin/` 後執行：
-
-```bash
+# 4. Ubuntu 23.10 以後：安裝 AppArmor 設定檔，否則開啟時會是空白視窗
 sudo cp apparmor/pinion /etc/apparmor.d/pinion
 sudo apparmor_parser -r /etc/apparmor.d/pinion
 ```
 
-（放在其他路徑的話，先把設定檔裡的 `/usr/local/bin/Pinion` 改成實際路徑。）
+之後在終端機執行 `Pinion` 即可。如果要把執行檔放在其他位置，請先把 `apparmor/pinion` 裡的 `/usr/local/bin/Pinion` 改成實際路徑。tar.gz 不會建立應用程式選單項目，需要的話建議改用 .deb。
+
+**其他注意事項**
+
+- **Serial**：一般使用者要加入 `dialout` 群組才能開啟序列埠，加入後要登出再登入才會生效：
+
+  ```bash
+  sudo usermod -aG dialout "$USER"
+  ```
+
+- **密碼儲存**：密碼存在系統的 Secret Service（GNOME 鑰匙圈、KWallet）。沒有 Secret Service 的環境（例如只有 SSH 的伺服器）會改用主密碼加密的檔案，第一次存密碼時會要求設定主密碼。
+
+### 核對下載的檔案
+
+每個版本都附有 `SHA256SUMS.txt`，可以用來確認檔案沒有損壞或被竄改：
+
+```bash
+# macOS / Linux（與 SHA256SUMS.txt 放在同一個資料夾）
+shasum -a 256 -c SHA256SUMS.txt --ignore-missing
+```
+
+```powershell
+# Windows（PowerShell），把結果與 SHA256SUMS.txt 裡的值比對
+Get-FileHash .\Pinion-<版本>-windows-x64-setup.exe
+```
 
 ## 快速上手
 

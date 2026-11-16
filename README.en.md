@@ -46,64 +46,128 @@
 
 ## Download and install
 
-Get the files from [Releases](https://github.com/ka1hung/pinion/releases):
+Download the file for your platform from [Releases](https://github.com/ka1hung/pinion/releases):
 
-| Platform | File | First launch |
+| Platform | Recommended | Alternative |
 | --- | --- | --- |
-| Windows 10 / 11 (x64) | `Pinion-<version>-windows-x64.zip` (portable) or `…-setup.exe` | Not code-signed yet; SmartScreen warns: click "More info" → "Run anyway" |
-| macOS (Apple Silicon) | `Pinion-<version>-macos-arm64.zip` | Not notarized yet: right-click Pinion.app in Finder → "Open", or run the command below |
-| Linux (x64, Ubuntu 24.04+) | `Pinion-<version>-linux-x64.tar.gz` or `.deb` | Needs GTK4 and WebKitGTK 6.0 |
+| Windows 10 / 11 (x64) | `Pinion-<version>-windows-x64-setup.exe` (installer) | `…-windows-x64.zip` (portable) |
+| macOS 12 or later (Apple Silicon) | `Pinion-<version>-macos-arm64.zip` | — |
+| Linux (x64, Ubuntu 24.04 or later) | `Pinion-<version>-linux-x64.deb` | `…-linux-x64.tar.gz` |
 
-Verify downloads with `SHA256SUMS.txt`:
+### Windows
 
-```bash
-sha256sum -c SHA256SUMS.txt --ignore-missing
-```
+**Installer (setup.exe)**
 
-Windows (PowerShell):
+1. Run `Pinion-<version>-windows-x64-setup.exe`.
+2. The app isn't code-signed yet, so SmartScreen shows "Windows protected your PC": click "More info" → "Run anyway".
+3. Allow administrator access (UAC) and follow the installer.
+4. Shortcuts are added to the Start menu and the desktop.
 
-```bash
-Get-FileHash .\Pinion-<version>-windows-x64.zip
-```
+Pinion is installed to `C:\Program Files\Pinion\Pinion`. If WebView2 is missing, the installer installs it (Windows 11 already has it).
 
-If Windows reports that WebView2 is missing (Windows 11 ships with it):
+To uninstall: Settings → Apps → Pinion → Uninstall.
 
-```bash
+**Portable (zip)**
+
+Extract to any folder (a USB stick works too) and run `Pinion.exe`. No administrator rights are needed and nothing is written to the registry.
+
+If it reports that WebView2 is missing (usually only on Windows 10):
+
+```powershell
 winget install Microsoft.EdgeWebView2Runtime
 ```
 
-macOS — remove the quarantine flag:
+**Notes**
+
+- **Serial**: USB-serial adapters appear in the COM port list once plugged in. If yours doesn't, check Device Manager; CH340, CP210x and PL2303 adapters may need a driver from the chip vendor.
+- **Ad-hoc servers**: the first time you start TFTP / HTTP / FTP, Windows Firewall asks for permission. Tick the network types you want to allow.
+
+### macOS
+
+Only Apple Silicon (M1 or later) is supported; Intel Macs can't run it.
+
+1. Unzip `Pinion-<version>-macos-arm64.zip` and drag `Pinion.app` into Applications.
+2. The app isn't notarized by Apple yet, so macOS blocks the first launch. Depending on your macOS version:
+   - **macOS 15 or later**: try to open it once, then go to System Settings → Privacy & Security, find the message about Pinion near the bottom and click "Open Anyway".
+   - **macOS 14 or earlier**: in Finder, right-click `Pinion.app` → "Open", then click "Open" again.
+   - Or run this once in Terminal, after which it opens normally:
+
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/Pinion.app
+     ```
+
+**Notes**
+
+- **Serial**: pick the `/dev/cu.*` device. `/dev/tty.*` waits for a carrier signal and appears to hang.
+- **Ad-hoc servers**: if the macOS firewall is on, it asks whether to allow incoming connections the first time.
+
+To uninstall: move `Pinion.app` from Applications to the Trash. Settings and sessions live in `~/Library/Application Support/Pinion`; delete that folder too if you want to remove them.
+
+### Linux
+
+Pinion needs GTK 4 and WebKitGTK 6.0, which are available on Ubuntu 24.04 and Debian 13 or later. Ubuntu 22.04 can't run it.
+
+**.deb (Ubuntu / Debian, recommended)**
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Pinion.app
+sudo apt install ./Pinion-<version>-linux-x64.deb
 ```
 
-Linux runtime packages:
+Installing with `apt install ./file` pulls in the dependencies and also:
+
+- adds Pinion to the application menu;
+- lets TFTP use port 69 without running as root;
+- installs an AppArmor profile. Since Ubuntu 23.10, ordinary programs aren't allowed to create user namespaces by default, and the WebKitGTK sandbox behind Pinion's UI needs that; without it you get a blank window or the app closes right away. The profile applies to Pinion only.
+
+To uninstall:
 
 ```bash
+sudo apt remove pinion
+```
+
+**.tar.gz (other distributions, or without a package manager)**
+
+```bash
+# 1. Runtime packages (Ubuntu / Debian)
 sudo apt install libgtk-4-1 libwebkitgtk-6.0-4
-```
 
-Linux serial ports require the `dialout` group (log in again afterwards):
+# 2. Extract and install to /usr/local/bin
+tar -xzf Pinion-<version>-linux-x64.tar.gz
+sudo install -m 0755 Pinion /usr/local/bin/Pinion
 
-```bash
-sudo usermod -aG dialout "$USER"
-```
-
-TFTP on port 69 needs a capability on Linux (the `.deb` sets it automatically):
-
-```bash
+# 3. Let TFTP use port 69 (skip if you don't use TFTP)
 sudo setcap cap_net_bind_service=+ep /usr/local/bin/Pinion
-```
 
-Ubuntu 23.10 and later use AppArmor to stop ordinary programs from creating user namespaces, which breaks the WebKitGTK sandbox (bubblewrap) behind Pinion's UI: you get a blank window or the app closes right away. The `.deb` installs an AppArmor profile that applies to Pinion only. With the `.tar.gz`, put `Pinion` in `/usr/local/bin/` and run:
-
-```bash
+# 4. Ubuntu 23.10 or later: install the AppArmor profile, or the window stays blank
 sudo cp apparmor/pinion /etc/apparmor.d/pinion
 sudo apparmor_parser -r /etc/apparmor.d/pinion
 ```
 
-(If you keep the binary elsewhere, change `/usr/local/bin/Pinion` in the profile to the real path first.)
+Then run `Pinion` from a terminal. If you put the binary somewhere else, change `/usr/local/bin/Pinion` in `apparmor/pinion` to the real path first. The tar.gz doesn't add an application menu entry; use the .deb if you want one.
+
+**Notes**
+
+- **Serial**: your user must be in the `dialout` group to open serial ports. Log out and back in after adding it:
+
+  ```bash
+  sudo usermod -aG dialout "$USER"
+  ```
+
+- **Password storage**: passwords go to the system Secret Service (GNOME Keyring, KWallet). Where there is none (for example on a machine reached only over SSH), Pinion uses a file encrypted with a master password and asks you to set one.
+
+### Verify the download
+
+Each release includes `SHA256SUMS.txt` so you can check that the files are intact and untampered:
+
+```bash
+# macOS / Linux (in the folder with SHA256SUMS.txt)
+shasum -a 256 -c SHA256SUMS.txt --ignore-missing
+```
+
+```powershell
+# Windows (PowerShell): compare the output with SHA256SUMS.txt
+Get-FileHash .\Pinion-<version>-windows-x64-setup.exe
+```
 
 ## Getting started
 
