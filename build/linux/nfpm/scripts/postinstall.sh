@@ -24,4 +24,17 @@ if command -v setcap >/dev/null 2>&1; then
   setcap cap_net_bind_service=+ep /usr/local/bin/Pinion || echo "Warning: setcap failed; TFTP on port 69 will need root." >&2
 fi
 
+# Ubuntu 23.10+ blocks unprivileged user namespaces unless an AppArmor profile
+# allows them, which breaks WebKitGTK's bubblewrap sandbox (blank window /
+# crash on start). Install a profile that allows them for Pinion only.
+# Skipped on systems without AppArmor 4 (no "userns" rule, no restriction).
+PROFILE_SRC=/usr/share/pinion/apparmor/pinion
+PROFILE_DST=/etc/apparmor.d/pinion
+if [ -f "$PROFILE_SRC" ] && [ -d /etc/apparmor.d ] && [ -e /etc/apparmor.d/abi/4.0 ]; then
+  install -m 0644 "$PROFILE_SRC" "$PROFILE_DST"
+  if command -v apparmor_parser >/dev/null 2>&1 && [ "$(cat /sys/module/apparmor/parameters/enabled 2>/dev/null)" = "Y" ]; then
+    apparmor_parser -r -T -W "$PROFILE_DST" || echo "Warning: failed to load AppArmor profile $PROFILE_DST" >&2
+  fi
+fi
+
 exit 0

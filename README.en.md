@@ -96,6 +96,15 @@ TFTP on port 69 needs a capability on Linux (the `.deb` sets it automatically):
 sudo setcap cap_net_bind_service=+ep /usr/local/bin/Pinion
 ```
 
+Ubuntu 23.10 and later use AppArmor to stop ordinary programs from creating user namespaces, which breaks the WebKitGTK sandbox (bubblewrap) behind Pinion's UI: you get a blank window or the app closes right away. The `.deb` installs an AppArmor profile that applies to Pinion only. With the `.tar.gz`, put `Pinion` in `/usr/local/bin/` and run:
+
+```bash
+sudo cp apparmor/pinion /etc/apparmor.d/pinion
+sudo apparmor_parser -r /etc/apparmor.d/pinion
+```
+
+(If you keep the binary elsewhere, change `/usr/local/bin/Pinion` in the profile to the real path first.)
+
 ## Getting started
 
 1. **Connect**: type `user@host:port` into "Quick connect" (top right) and press Enter. `telnet://host`, `tcp://host:port`, `udp://host:port`, `COM3` and `/dev/ttyUSB0` also work.

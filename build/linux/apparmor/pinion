@@ -1,0 +1,23 @@
+# AppArmor profile for Pinion.
+#
+# Pinion's UI runs in WebKitGTK, which sandboxes its web process with
+# bubblewrap (bwrap). That needs unprivileged user namespaces, which
+# Ubuntu 23.10+ blocks unless an AppArmor profile allows them
+# (kernel.apparmor_restrict_unprivileged_userns=1). This profile only grants
+# that permission to Pinion itself, the same way Ubuntu ships profiles for
+# Chrome, VS Code and Epiphany; it does not otherwise confine the app.
+#
+# The .deb installs it automatically. For the .tar.gz, copy the binary to
+# /usr/local/bin/Pinion (or edit the path below), then:
+#   sudo cp pinion /etc/apparmor.d/pinion
+#   sudo apparmor_parser -r /etc/apparmor.d/pinion
+
+abi <abi/4.0>,
+include <tunables/global>
+
+profile pinion /usr/local/bin/Pinion flags=(unconfined) {
+  userns,
+
+  # Site-specific additions and overrides. See local/README for details.
+  include if exists <local/pinion>
+}

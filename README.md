@@ -94,6 +94,15 @@ Linux 上 TFTP 使用 69 埠需要授權（`.deb` 安裝時會自動設定）：
 sudo setcap cap_net_bind_service=+ep /usr/local/bin/Pinion
 ```
 
+Ubuntu 23.10 以後用 AppArmor 限制一般程式建立 user namespace，Pinion 介面用的 WebKitGTK 沙箱（bubblewrap）會因此無法啟動，打開只看到空白視窗或直接關閉。`.deb` 安裝時會自動放一個只對 Pinion 生效的 AppArmor 設定檔；用 `.tar.gz` 的話，把 `Pinion` 放到 `/usr/local/bin/` 後執行：
+
+```bash
+sudo cp apparmor/pinion /etc/apparmor.d/pinion
+sudo apparmor_parser -r /etc/apparmor.d/pinion
+```
+
+（放在其他路徑的話，先把設定檔裡的 `/usr/local/bin/Pinion` 改成實際路徑。）
+
 ## 快速上手
 
 1. **連線**：在右上角「快速連線」輸入 `user@host:port` 後按 Enter；也支援 `telnet://host`、`tcp://host:port`、`udp://host:port`、`COM3`、`/dev/ttyUSB0`。

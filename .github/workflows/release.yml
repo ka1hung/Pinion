@@ -112,7 +112,7 @@ jobs:
       - name: Tarball
         run: |
           mkdir -p dist
-          tar -czf "dist/Pinion-${VERSION}-linux-x64.tar.gz" -C bin Pinion -C .. LICENSE THIRD_PARTY_NOTICES.txt README.md README.en.md
+          tar -czf "dist/Pinion-${VERSION}-linux-x64.tar.gz" -C bin Pinion -C .. LICENSE THIRD_PARTY_NOTICES.txt README.md README.en.md -C build/linux apparmor/pinion
       - name: .deb package (optional)
         continue-on-error: true
         run: |
