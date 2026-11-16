@@ -93,7 +93,7 @@ export const en: Record<keyof typeof zh, string> = {
   "sessionEditor.user": "User",
   "sessionEditor.userPlaceholder": "Leave blank to enter when connecting",
   "sessionEditor.auth": "Authentication",
-  "sessionEditor.auth.auto": "Auto (agent → key → password)",
+  "sessionEditor.auth.auto": "Auto (agent/key/pass)",
   "sessionEditor.auth.password": "Password",
   "sessionEditor.auth.key": "Private key file",
   "sessionEditor.password": "Password (stored in system keychain)",

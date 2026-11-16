@@ -428,7 +428,7 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
           onChange={(e) => setPathInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && load(pathInput.trim() || "/")}
         />
-        <div className="mt-1 flex items-center gap-3 px-0.5 text-[13px] text-mute">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 whitespace-nowrap px-0.5 text-[13px] text-mute">
           <Check
             checked={follow}
             title={tr("sftp.followHint")}

@@ -93,7 +93,7 @@ export const en: Record<keyof typeof zh, string> = {
   "sftp.keys.copyPath": "Ctrl+Shift+C  Copy path    Type a name  Jump to file",
   "sftp.keys.esc": "Esc  Back to terminal",
   "sftp.followHint": "The file list follows the terminal's cd (requires the shell to report its directory, or a user@host:dir# style prompt)",
-  "sftp.follow": "Follow terminal folder",
+  "sftp.follow": "Follow terminal",
   "sftp.colPerm": "Permissions",
   "sftp.upRow": "Up one level (Backspace)",
   "sftp.emptyFolder": "(Empty folder)",

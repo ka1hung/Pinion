@@ -137,17 +137,17 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex h-8 shrink-0 items-center gap-2 border-b border-line px-3 text-[13px] text-mute">
         {doc.readOnly && <Lock size={13} className="text-warn" />}
-        <span className="truncate font-mono">{host ? `${host}:${doc.path}` : doc.path}</span>
+        <span className="min-w-0 truncate font-mono">{host ? `${host}:${doc.path}` : doc.path}</span>
         <div className="flex-1" />
         {doc.source === "remote" && (
-          <button className="icon-btn flex items-center gap-1 text-[13px]" title={t("editor.externalTitle")} onClick={() => openExternal(doc.tabId, doc.path)}>
+          <button className="icon-btn flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px]" title={t("editor.externalTitle")} onClick={() => openExternal(doc.tabId, doc.path)}>
             <ExternalLink size={13} /> {t("editor.external")}
           </button>
         )}
-        <button className="icon-btn flex items-center gap-1 text-[13px]" title={t("editor.reloadTitle")} onClick={() => reload(doc.encoding)}>
+        <button className="icon-btn flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px]" title={t("editor.reloadTitle")} onClick={() => reload(doc.encoding)}>
           <RefreshCw size={13} /> {t("editor.reload")}
         </button>
-        <button className="btn-primary !py-0.5 text-[13px]" disabled={doc.readOnly || saving || !tab.dirty} onClick={() => save()}>
+        <button className="btn-primary shrink-0 !py-0.5 text-[13px]" disabled={doc.readOnly || saving || !tab.dirty} onClick={() => save()}>
           {t("common.save")} {isMac ? "⌘S" : "Ctrl+S"}
         </button>
       </div>
@@ -183,7 +183,7 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
         />
       </div>
       <div className="flex h-6 shrink-0 items-center gap-3 border-t border-line bg-side px-3 text-[13px] text-mute">
-        <span>
+        <span className="whitespace-nowrap">
           {t("editor.cursorPos", { line: pos.line, col: pos.col })}
         </span>
         <div className="flex-1" />

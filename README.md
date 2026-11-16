@@ -3,13 +3,13 @@
 <h1 align="center">Pinion</h1>
 
 <p align="center">
-  給系統整合與現場工程師的跨平台終端工具：SSH、Serial、Telnet、SFTP、隧道與臨時伺服器，放在同一個視窗。<br>
+  給系統整合與現場工程師的跨平台終端工具：SSH、Serial、Telnet、SFTP、通道與臨時伺服器，放在同一個視窗。<br>
   Windows · macOS · Linux ｜ MIT 授權
 </p>
 
 <p align="center"><b>繁體中文</b> ｜ <a href="README.en.md">English</a></p>
 
-<!-- 截圖：待補 -->
+<p align="center"><img src="docs/screenshots/hero-zh.png" alt="Pinion 主畫面：SSH 終端機與 SFTP 檔案列表"></p>
 
 ---
 
@@ -38,9 +38,9 @@
 | Session 管理 | 依案場資料夾分組、搜尋、拖曳整理、複製、匯入 / 匯出（不含密碼） |
 | SFTP | SSH 連線後左側自動顯示遠端檔案；跟隨終端機目錄；上傳下載（可拖曳）；遠端複製 / 搬移；權限設定；完整鍵盤操作 |
 | 文字編輯器 | 內建 VS Code 編輯器核心（Monaco，離線可用）；UTF-8 / Big5、LF / CRLF；存檔前檢查遠端是否被改過並顯示差異；權限不足時用 sudo 存檔；也可改用 VS Code 等外部編輯器（存檔自動上傳） |
-| SSH 隧道 | Local / Remote / Dynamic（SOCKS5），一鍵開關，可隨 session 自動啟動 |
+| SSH 通道 | Local / Remote / Dynamic（SOCKS5），一鍵開關，可隨 session 自動啟動 |
 | 臨時伺服器 | TFTP、HTTP、FTP 一鍵開關，指定資料夾與網卡，預設唯讀、閒置自動關閉（刷韌體用） |
-| 其他 | MultiExec（一次送指令到多個分頁）、Session log（檔名含案場與時間）、深色 / 淺色主題、Session 設定檔匯入（.ini / .mxtsessions） |
+| 其他 | MultiExec（一次送指令到多個分頁）、Session log（檔名含案場與時間）、深色 / 淺色主題、繁體中文 / English 介面、Session 設定檔匯入（.ini / .mxtsessions） |
 
 ## 下載與安裝
 
@@ -175,14 +175,18 @@ macOS：⌘C / ⌘V 複製貼上、⌘F 搜尋；Ctrl+C 一律是中斷。
 
 ### Session 與資料夾
 
+<p align="center"><img src="docs/screenshots/editor-zh.png" width="800" alt="Session 設定"></p>
+
 - 側邊欄「Sessions」依資料夾（案場）分組，可拖曳 session 到其他資料夾，右鍵可新增子資料夾、重新命名、整個資料夾一起連線、匯出。
 - 搜尋框可找名稱、IP、資料夾與備註。
-- Session 可設定標籤顏色、終端編碼（舊設備用 Big5）、自動存 log、開機後執行指令。
+- Session 可設定標籤顏色、終端機編碼（舊設備用 Big5）、自動存 log、登入後執行指令。
 
 ### SFTP 與編輯器
 
+<p align="center"><img src="docs/screenshots/split-zh.png" width="800" alt="分割畫面：終端機與遠端檔案編輯器"></p>
+
 - SSH 分頁連上後，側邊欄自動顯示該連線的遠端檔案；切到其他分頁時回到 Sessions（設定中可關閉）。
-- 「跟隨終端資料夾」：在終端機 `cd` 時檔案列表跟著切換（支援 `user@host:~/dir$` 這類提示字元，或會回報目錄的 shell）。
+- 「跟隨終端機資料夾」：在終端機 `cd` 時檔案列表跟著切換（支援 `user@host:~/dir$` 這類提示字元，或會回報目錄的 shell）。
 - 從檔案總管把檔案拖進列表即可上傳。
 - 右鍵「權限…」以勾選方式設定擁有者 / 群組 / 其他人的讀、寫、執行，也可直接輸入八進位（例如 755）。
 - 編輯器存檔前會檢查遠端檔案是否被別人改過，有的話顯示差異讓你決定覆蓋或重新載入；沒有寫入權限時可改用 sudo 存檔。
@@ -194,9 +198,9 @@ macOS：⌘C / ⌘V 複製貼上、⌘F 搜尋；Ctrl+C 一律是中斷。
 - 下方送出框可選 UTF-8 / HEX / JSON 格式與結尾字元（CR / LF / CRLF），↑↓ 叫出歷史。
 - Serial 可切換 DTR / RTS、送出 BREAK；開埠失敗時會顯示對應平台的處理方式（驅動、權限）。
 
-### SSH 隧道
+### SSH 通道
 
-在 SSH session 的「隧道」分頁新增規則，再到側邊欄「隧道」啟動或停止；勾「自動」則開啟 session 時一併啟動。
+在 SSH session 的「通道」分頁新增規則，再到側邊欄「通道」啟動或停止；勾「自動」則開啟 session 時一併啟動。
 
 | 類型 | 用途 | 範例 |
 | --- | --- | --- |
@@ -275,7 +279,7 @@ Go 核心
    │    SSH · Serial · Telnet · 本機 Shell（PTY / ConPTY）· TCP / UDP
    ├─ 分頁管理：重連、Session log、MultiExec、Big5 轉碼
    ├─ SSH 連線池：終端、SFTP、sudo 存檔共用同一條連線
-   └─ SFTP · 編輯器 · 隧道 · TFTP / HTTP / FTP 伺服器 · 設定檔匯入
+   └─ SFTP · 編輯器 · 通道 · TFTP / HTTP / FTP 伺服器 · 設定檔匯入
 本機儲存：sessions.json · settings.json · known_hosts · 系統鑰匙圈
 ```
 

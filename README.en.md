@@ -9,9 +9,9 @@
 
 <p align="center"><a href="README.md">繁體中文</a> ｜ <b>English</b></p>
 
-> The user interface is currently in Traditional Chinese; labels quoted below are translated.
+> The interface is available in English and Traditional Chinese: Settings → General → Language.
 
-<!-- Screenshots: TODO -->
+<p align="center"><img src="docs/screenshots/hero-en.png" alt="Pinion main window: SSH terminal with the SFTP file list"></p>
 
 ---
 
@@ -42,7 +42,7 @@
 | Editor | Built-in VS Code editor core (Monaco, works offline); UTF-8 / Big5, LF / CRLF; detects remote changes before saving and shows a diff; save with sudo when permission is denied; or use an external editor such as VS Code (saves are uploaded automatically) |
 | SSH tunnels | Local / Remote / Dynamic (SOCKS5); one-click start/stop; optional auto-start with the session |
 | Quick servers | One-click TFTP, HTTP and FTP with a chosen folder and interface; read-only by default, stops when idle (firmware flashing) |
-| More | MultiExec (send to several tabs), session logs (file names include site and time), dark / light themes, session file import (.ini / .mxtsessions) |
+| More | MultiExec (send to several tabs), session logs (file names include site and time), dark / light themes, English / Traditional Chinese UI, session file import (.ini / .mxtsessions) |
 
 ## Download and install
 
@@ -177,14 +177,18 @@ Same as VS Code; the most used ones:
 
 ### Sessions and folders
 
+<p align="center"><img src="docs/screenshots/editor-en.png" width="800" alt="Session settings"></p>
+
 - The "Sessions" sidebar groups sessions by folder (site). Drag sessions between folders; right-click a folder to add subfolders, rename, connect to everything inside, or export.
 - Search matches names, IPs, folders and notes.
 - Per session: tab color, terminal encoding (Big5 for older devices), automatic log, startup command.
 
 ### SFTP and the editor
 
+<p align="center"><img src="docs/screenshots/split-en.png" width="800" alt="Split view: terminal and remote file editor"></p>
+
 - When an SSH tab connects, the sidebar shows its remote files; switching to another tab brings the session list back (can be turned off in Settings).
-- "Follow terminal folder": the file list follows `cd` in the terminal (works with `user@host:~/dir$`-style prompts or shells that report their directory).
+- "Follow terminal": the file list follows `cd` in the terminal (works with `user@host:~/dir$`-style prompts or shells that report their directory).
 - Drag files from your file manager into the list to upload.
 - Right-click → "Permissions…" shows owner / group / others × read / write / execute checkboxes and an octal field (e.g. 755).
 - Before saving, the editor checks whether the remote file changed and shows a diff so you can overwrite or reload; if you lack write permission you can save with sudo.
@@ -214,7 +218,7 @@ The "Servers" sidebar starts and stops TFTP (69), HTTP (8080) and FTP (2121) wit
 
 ### MultiExec
 
-Turn on "MultiExec" in the toolbar to get checkboxes on tabs. Type a command in the bar at the bottom to send it to every checked tab, or enable "Type in all" to mirror your typing.
+Turn on "MultiExec" in the toolbar to get checkboxes on tabs. Type a command in the bar at the bottom to send it to every checked tab, or enable "Mirror typing" to mirror your typing.
 
 ### Importing session files
 

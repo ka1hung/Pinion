@@ -305,7 +305,7 @@ function SessionTree() {
           {s.color && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.color }} />}
           {typeIcon(s.type)}
           <span className="truncate">{s.name}</span>
-          <span className="ml-auto truncate pl-2 text-[12px] text-mute opacity-0 group-hover:opacity-100">
+          <span className="ml-auto hidden truncate pl-2 text-[12px] text-mute group-hover:block">
             {sessionSubtitle(s)}
           </span>
         </div>,
