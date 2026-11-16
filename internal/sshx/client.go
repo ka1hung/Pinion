@@ -104,7 +104,17 @@ func (d *Dialer) Dial(ctx context.Context, sess *store.Session, tabID string) (*
 		}
 	}
 	for i, hop := range hops {
-		cfg, saver := d.clientConfig(ctx, hop, tabID)
+		// No username configured: ask for it (and the password) at connect time.
+		var login *loginAnswer
+		if hop.User == "" {
+			if login, err = d.askLogin(ctx, hop, tabID); err != nil {
+				cleanup()
+				return nil, err
+			}
+			hop.User = login.user
+			hops[i] = hop
+		}
+		cfg, saver := d.clientConfig(ctx, hop, tabID, login)
 		var c *ssh.Client
 		if client == nil {
 			c, err = dialDirect(ctx, hop.addr(), cfg)
@@ -261,15 +271,55 @@ func (p *pendingSave) commit() {
 	}
 }
 
-func (d *Dialer) clientConfig(ctx context.Context, t Target, tabID string) (*ssh.ClientConfig, *pendingSave) {
-	ps := &pendingSave{d: d, vals: map[string]string{}}
-	user := t.User
-	if user == "" {
-		user = os.Getenv("USER")
-		if user == "" {
-			user = os.Getenv("USERNAME")
+// loginAnswer is what the user typed in the login prompt shown when a hop has
+// no username configured.
+type loginAnswer struct {
+	user     string
+	password string // empty = not given; the normal password prompt is used if needed
+	save     bool
+}
+
+// askLogin prompts for the username of a hop that has none configured. The
+// password is asked in the same dialog unless one is already saved in the
+// keychain or the hop authenticates only by key/agent.
+func (d *Dialer) askLogin(ctx context.Context, t Target, tabID string) (*loginAnswer, error) {
+	fields := []prompt.Field{{Label: "Username", Echo: true}}
+	wantPW := t.Auth == "" || t.Auth == store.AuthAuto || t.Auth == store.AuthPassword
+	if wantPW && t.SessionID != "" {
+		if v, err := d.Secrets.Get(secret.Key(t.SessionID, secret.KindPassword)); err == nil && v != "" {
+			wantPW = false
 		}
 	}
+	if wantPW {
+		fields = append(fields, prompt.Field{Label: "Password"})
+	}
+	r, err := d.Prompt.Ask(ctx, prompt.Request{
+		Kind: prompt.KindLogin, TabID: tabID,
+		Title:   "Login",
+		Message: t.addr(),
+		Params:  map[string]string{"addr": t.addr()},
+		Fields:  fields,
+		CanSave: wantPW && t.SessionID != "",
+	})
+	if err != nil {
+		return nil, err
+	}
+	a := &loginAnswer{save: r.Save}
+	if len(r.Answers) > 0 {
+		a.user = strings.TrimSpace(r.Answers[0])
+	}
+	if len(r.Answers) > 1 {
+		a.password = r.Answers[1]
+	}
+	if a.user == "" {
+		return nil, errors.New("username is required")
+	}
+	return a, nil
+}
+
+func (d *Dialer) clientConfig(ctx context.Context, t Target, tabID string, login *loginAnswer) (*ssh.ClientConfig, *pendingSave) {
+	ps := &pendingSave{d: d, vals: map[string]string{}}
+	user := t.User
 	var methods []ssh.AuthMethod
 	auth := t.Auth
 	if auth == "" {
@@ -294,7 +344,7 @@ func (d *Dialer) clientConfig(ctx context.Context, t Target, tabID string) (*ssh
 		}
 	}
 	if auth == store.AuthPassword || auth == store.AuthAuto {
-		pw := d.passwordSource(ctx, t, user, tabID, ps)
+		pw := d.passwordSource(ctx, t, user, tabID, ps, login)
 		methods = append(methods,
 			ssh.RetryableAuthMethod(ssh.PasswordCallback(pw), 3),
 			ssh.RetryableAuthMethod(ssh.KeyboardInteractive(d.kbdInt(ctx, t, user, tabID, pw)), 3),
@@ -310,9 +360,19 @@ func (d *Dialer) clientConfig(ctx context.Context, t Target, tabID string) (*ssh
 	}, ps
 }
 
-func (d *Dialer) passwordSource(ctx context.Context, t Target, user, tabID string, ps *pendingSave) func() (string, error) {
+func (d *Dialer) passwordSource(ctx context.Context, t Target, user, tabID string, ps *pendingSave, login *loginAnswer) func() (string, error) {
 	triedSaved := false
+	triedLogin := login == nil || login.password == ""
 	return func() (string, error) {
+		// Password typed in the login prompt: use it once; a retry asks again.
+		if !triedLogin {
+			triedLogin = true
+			triedSaved = true
+			if login.save && t.SessionID != "" {
+				ps.set(secret.Key(t.SessionID, secret.KindPassword), login.password)
+			}
+			return login.password, nil
+		}
 		if !triedSaved && t.SessionID != "" {
 			triedSaved = true
 			if v, err := d.Secrets.Get(secret.Key(t.SessionID, secret.KindPassword)); err == nil && v != "" {
@@ -325,6 +385,7 @@ func (d *Dialer) passwordSource(ctx context.Context, t Target, user, tabID strin
 			Title:   "Password",
 			Message: fmt.Sprintf("%s@%s", user, t.addr()),
 			Fields:  []prompt.Field{{Label: "Password"}},
+			Params:  map[string]string{"target": fmt.Sprintf("%s@%s", user, t.addr())},
 			CanSave: t.SessionID != "",
 		})
 		if err != nil {
@@ -412,6 +473,7 @@ func (d *Dialer) decryptKey(ctx context.Context, t Target, tabID, path string, p
 		r, err := d.Prompt.Ask(ctx, prompt.Request{
 			Kind: prompt.KindPassphrase, TabID: tabID, Title: "Key passphrase",
 			Message: filepath.Base(path), Fields: []prompt.Field{{Label: "Passphrase"}},
+			Params:  map[string]string{"file": filepath.Base(path)},
 			CanSave: t.SessionID != "",
 		})
 		if err != nil {

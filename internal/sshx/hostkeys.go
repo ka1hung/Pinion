@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -73,6 +74,10 @@ func (h *HostKeys) Callback(ctx context.Context, tabID string) ssh.HostKeyCallba
 							"Connection refused. If the change is expected, remove the old key in Settings → Known hosts (line %d of %s).",
 							hostname, key.Type(), fp, ke.Want[0].Line, h.Path),
 						Fingerprint: fp,
+						Params: map[string]string{
+							"host": hostname, "keyType": key.Type(),
+							"line": strconv.Itoa(ke.Want[0].Line), "path": h.Path,
+						},
 					})
 				}()
 			}
@@ -86,6 +91,7 @@ func (h *HostKeys) Callback(ctx context.Context, tabID string) ssh.HostKeyCallba
 			Title:       "Unknown host",
 			Message:     fmt.Sprintf("The authenticity of host %s can't be established.\n%s key fingerprint is:", hostname, key.Type()),
 			Fingerprint: fp,
+			Params:      map[string]string{"host": hostname, "keyType": key.Type()},
 		})
 		if err != nil {
 			return fmt.Errorf("host key not accepted for %s", hostname)

@@ -7,6 +7,7 @@ import { openMenu } from "./ui";
 import TerminalView from "./TerminalView";
 import EditorView from "./EditorView";
 import Welcome from "./Welcome";
+import { useT } from "../lib/i18n";
 
 function stateColor(state: string) {
   switch (state) {
@@ -21,20 +22,21 @@ function stateColor(state: string) {
 }
 
 function TabBar() {
+  const tr = useT();
   const { tabs, activeId, split, multi, activate, toggleSelected, setSplit } = useStore();
   const menu = (e: React.MouseEvent, t: Tab) =>
     openMenu(e, [
-      { label: "關閉", icon: <X size={14} />, onClick: () => closeTab(t.id) },
+      { label: tr("common.close"), icon: <X size={14} />, onClick: () => closeTab(t.id) },
       {
-        label: "關閉其他分頁",
+        label: tr("workspace.closeOthers"),
         onClick: () => tabs.filter((x) => x.id !== t.id).forEach((x) => closeTab(x.id)),
       },
       { separator: true },
       ...(t.kind === "terminal"
         ? [
-            { label: "重新連線", icon: <RotateCw size={14} />, onClick: () => TerminalService.Reconnect(t.id) },
+            { label: tr("workspace.reconnect"), icon: <RotateCw size={14} />, onClick: () => TerminalService.Reconnect(t.id) },
             {
-              label: "再開一個相同連線",
+              label: tr("workspace.duplicate"),
               icon: <CopyIcon size={14} />,
               disabled: !t.sessionId,
               onClick: () => openSession(t.sessionId),
@@ -42,7 +44,7 @@ function TabBar() {
           ]
         : []),
       {
-        label: "顯示在右側窗格",
+        label: tr("workspace.showRight"),
         icon: <Columns2 size={14} />,
         onClick: () => setSplit({ on: true, rightId: t.id }),
       },
@@ -115,6 +117,7 @@ function TabBar() {
 }
 
 function Pane({ tab, side }: { tab: Tab | undefined; side: "left" | "right" }) {
+  const t = useT();
   const split = useStore((s) => s.split);
   const setSplit = useStore((s) => s.setSplit);
   const focused = split.on && split.focus === side;
@@ -131,7 +134,7 @@ function Pane({ tab, side }: { tab: Tab | undefined; side: "left" | "right" }) {
         )
       ) : side === "right" ? (
         <div className="flex flex-1 items-center justify-center text-mute">
-          點這個窗格後再點上方分頁，或在分頁右鍵選「顯示在右側窗格」
+          {t("workspace.rightHint", { action: t("workspace.showRight") })}
         </div>
       ) : (
         <Welcome />

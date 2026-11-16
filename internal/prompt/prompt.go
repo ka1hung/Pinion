@@ -17,6 +17,7 @@ const (
 	KindHostKey    = "hostkey"    // yes/no with fingerprint
 	KindHostKeyBad = "hostkeybad" // changed key: info only, always rejected
 	KindPassword   = "password"
+	KindLogin      = "login" // username (+ password) when the session has no user
 	KindPassphrase = "passphrase"
 	KindKbdInt     = "kbdint"
 	KindConfirm    = "confirm"
@@ -38,7 +39,10 @@ type Request struct {
 	Fields      []Field `json:"fields,omitempty"`
 	Fingerprint string  `json:"fingerprint,omitempty"`
 	CanSave     bool    `json:"canSave,omitempty"`
-	TabID       string  `json:"tabId,omitempty"`
+	// Params carries the values the UI needs to build its localized text
+	// (Title/Message/Field labels are English fallbacks).
+	Params map[string]string `json:"params,omitempty"`
+	TabID  string            `json:"tabId,omitempty"`
 }
 
 // Response comes back from the UI.

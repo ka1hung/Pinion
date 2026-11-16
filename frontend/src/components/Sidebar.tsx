@@ -10,6 +10,7 @@ import { openMenu, confirmDialog, inputDialog } from "./ui";
 import TunnelsPanel from "./panels/TunnelsPanel";
 import ServersPanel from "./panels/ServersPanel";
 import SftpPanel from "./SftpPanel";
+import { useT } from "../lib/i18n";
 
 export function typeIcon(type: string, size = 14) {
   switch (type) {
@@ -69,6 +70,7 @@ export function useFocusedTab() {
 }
 
 export default function Sidebar() {
+  const tr = useT();
   const view = useStore((s) => s.sidebar);
   const set = useStore((s) => s.set);
   const autoSwitch = useStore((s) => s.settings?.sftpAutoSwitch ?? true);
@@ -95,8 +97,8 @@ export default function Sidebar() {
   const tabs: { id: SidebarView; label: string; icon: JSX.Element }[] = [
     { id: "sessions", label: "Sessions", icon: <Server size={14} /> },
     { id: "sftp", label: "SFTP", icon: <FolderTree size={14} /> },
-    { id: "tunnels", label: "隧道", icon: <Cable size={14} /> },
-    { id: "servers", label: "伺服器", icon: <HardDrive size={14} /> },
+    { id: "tunnels", label: tr("sidebar.tunnels"), icon: <Cable size={14} /> },
+    { id: "servers", label: tr("sidebar.servers"), icon: <HardDrive size={14} /> },
   ];
   const shown = view;
   const choose = (v: SidebarView) => set("sidebar", v);
@@ -118,17 +120,17 @@ export default function Sidebar() {
   };
   return (
     <div className="relative flex shrink-0 flex-col border-r border-line bg-side" style={{ width }}>
-      <div className="flex border-b border-line">
+      <div className="sidebar-tabs flex border-b border-line">
         {tabs.map((t) => (
           <button
             key={t.id}
             className={
-              "flex flex-1 items-center justify-center gap-1 py-1.5 text-[13px] " +
+              "flex min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap py-1.5 text-[13px] " +
               (shown === t.id ? "border-b-2 border-accent text-fg" : "text-mute hover:text-fg")
             }
             onClick={() => choose(t.id)}
           >
-            {t.icon}
+            <span className="sidebar-tab-icon flex">{t.icon}</span>
             {t.label}
           </button>
         ))}
@@ -140,10 +142,10 @@ export default function Sidebar() {
             <SftpPanel key={sshTab.id} tab={sshTab} />
           ) : (
             <div className="p-4 text-center text-mute">
-              切到一個 SSH 分頁就會在這裡顯示它的遠端檔案。
+              {tr("sidebar.sftpHint")}
               <br />
               <button className="mt-2 text-accent" onClick={() => set("sidebar", "sessions")}>
-                回到 Sessions 列表
+                {tr("sidebar.backToSessions")}
               </button>
             </div>
           ))}
@@ -156,6 +158,7 @@ export default function Sidebar() {
 }
 
 function SessionTree() {
+  const t = useT();
   const { folders, sessions, set } = useStore();
   const [q, setQ] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -171,57 +174,57 @@ function SessionTree() {
   const tree = useMemo(() => buildTree(q ? [] : folders, filtered), [folders, filtered, q]);
 
   const newFolder = async (parent: string) => {
-    const name = await inputDialog("新增資料夾", "", parent ? `建立於「${parent}」底下` : "例如案場名稱");
+    const name = await inputDialog(t("sidebar.newFolder"), "", parent ? t("sidebar.newFolderUnder", { parent }) : t("sidebar.newFolderHint"));
     if (!name) return;
     SessionService.AddFolder(parent ? parent + "/" + name : name).catch((e) => toast("error", errMsg(e)));
   };
 
   const folderMenu = (e: React.MouseEvent, n: Node) =>
     openMenu(e, [
-      { label: "在此新增 Session", icon: <Plus size={14} />, onClick: () => set("sessionEditor", { folder: n.path }) },
-      { label: "新增子資料夾", icon: <FolderPlus size={14} />, onClick: () => newFolder(n.path) },
+      { label: t("sidebar.newSessionHere"), icon: <Plus size={14} />, onClick: () => set("sessionEditor", { folder: n.path }) },
+      { label: t("sidebar.newSubfolder"), icon: <FolderPlus size={14} />, onClick: () => newFolder(n.path) },
       {
-        label: "全部連線",
+        label: t("sidebar.connectAll"),
         icon: <Play size={14} />,
         onClick: () => collect(n).forEach((s) => openSession(s.id)),
       },
       { separator: true },
       {
-        label: "重新命名",
+        label: t("common.rename"),
         icon: <Pencil size={14} />,
         onClick: async () => {
-          const v = await inputDialog("重新命名資料夾", n.path, "可用 / 移到其他位置");
+          const v = await inputDialog(t("sidebar.renameFolder"), n.path, t("sidebar.renameFolderHint"));
           if (v && v !== n.path) SessionService.RenameFolder(n.path, v).catch((er) => toast("error", errMsg(er)));
         },
       },
       {
-        label: "匯出此資料夾",
+        label: t("sidebar.exportFolder"),
         icon: <Upload size={14} />,
         onClick: () =>
           SessionService.Export(n.path)
-            .then((p) => p && toast("success", "已匯出到 " + p))
+            .then((p) => p && toast("success", t("sidebar.exportedTo", { path: p })))
             .catch((er) => toast("error", errMsg(er))),
       },
       {
-        label: "匯入到此資料夾",
+        label: t("sidebar.importToFolder"),
         icon: <Download size={14} />,
         onClick: () =>
           SessionService.ImportPinion(n.path)
-            .then((c) => c && toast("success", `已匯入 ${c} 個 session`))
+            .then((c) => c && toast("success", t("sidebar.imported", { count: c })))
             .catch((er) => toast("error", errMsg(er))),
       },
       { separator: true },
       {
-        label: "刪除資料夾",
+        label: t("sidebar.deleteFolder"),
         icon: <Trash2 size={14} />,
         danger: true,
         onClick: async () => {
           const count = collect(n).length;
           if (
             await confirmDialog(
-              "刪除資料夾",
-              count ? `「${n.path}」內有 ${count} 個 session，會一併刪除（含已存密碼）。` : `刪除「${n.path}」？`,
-              { danger: true, ok: "刪除" },
+              t("sidebar.deleteFolder"),
+              count ? t("sidebar.deleteFolderWithSessions", { path: n.path, count }) : t("sidebar.deleteFolderConfirm", { path: n.path }),
+              { danger: true, ok: t("common.delete") },
             )
           )
             SessionService.DeleteFolder(n.path, true).catch((er) => toast("error", errMsg(er)));
@@ -232,20 +235,20 @@ function SessionTree() {
   const sessionMenu = (e: React.MouseEvent, s: S.Session) => {
     setSelected(s.id);
     openMenu(e, [
-      { label: "連線", icon: <Play size={14} />, onClick: () => openSession(s.id) },
-      { label: "編輯", icon: <Pencil size={14} />, onClick: () => set("sessionEditor", { session: s }) },
+      { label: t("sidebar.connect"), icon: <Play size={14} />, onClick: () => openSession(s.id) },
+      { label: t("common.edit"), icon: <Pencil size={14} />, onClick: () => set("sessionEditor", { session: s }) },
       {
-        label: "複製",
+        label: t("sidebar.duplicate"),
         icon: <Copy size={14} />,
         onClick: () => SessionService.Duplicate(s.id).catch((er) => toast("error", errMsg(er))),
       },
       { separator: true },
       {
-        label: "刪除",
+        label: t("common.delete"),
         icon: <Trash2 size={14} />,
         danger: true,
         onClick: async () => {
-          if (await confirmDialog("刪除 Session", `刪除「${s.name}」及其已存密碼？`, { danger: true, ok: "刪除" }))
+          if (await confirmDialog(t("sidebar.deleteSession"), t("sidebar.deleteSessionConfirm", { name: s.name }), { danger: true, ok: t("common.delete") }))
             SessionService.Delete(s.id).catch((er) => toast("error", errMsg(er)));
         },
       },
@@ -316,12 +319,12 @@ function SessionTree() {
       <div className="flex items-center gap-1 p-2">
         <div className="relative flex-1">
           <Search size={13} className="absolute left-2 top-1.5 text-mute" />
-          <input className="input pl-7" placeholder="搜尋名稱、IP、案場…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="input pl-7" placeholder={t("sidebar.searchPlaceholder")} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <button className="icon-btn" title="新增資料夾" onClick={() => newFolder("")}>
+        <button className="icon-btn" title={t("sidebar.newFolder")} onClick={() => newFolder("")}>
           <FolderPlus size={16} />
         </button>
-        <button className="icon-btn" title="新增 Session" onClick={() => set("sessionEditor", {})}>
+        <button className="icon-btn" title={t("sidebar.newSession")} onClick={() => set("sessionEditor", {})}>
           <Plus size={16} />
         </button>
       </div>
@@ -332,17 +335,17 @@ function SessionTree() {
         onContextMenu={(e) =>
           e.target === e.currentTarget &&
           openMenu(e, [
-            { label: "新增 Session", icon: <Plus size={14} />, onClick: () => set("sessionEditor", {}) },
-            { label: "新增資料夾", icon: <FolderPlus size={14} />, onClick: () => newFolder("") },
+            { label: t("sidebar.newSession"), icon: <Plus size={14} />, onClick: () => set("sessionEditor", {}) },
+            { label: t("sidebar.newFolder"), icon: <FolderPlus size={14} />, onClick: () => newFolder("") },
             {
-              label: "匯出全部",
+              label: t("sidebar.exportAll"),
               icon: <Upload size={14} />,
-              onClick: () => SessionService.Export("").then((p) => p && toast("success", "已匯出到 " + p)),
+              onClick: () => SessionService.Export("").then((p) => p && toast("success", t("sidebar.exportedTo", { path: p }))),
             },
             {
-              label: "匯入 Pinion JSON",
+              label: t("sidebar.importJson"),
               icon: <Download size={14} />,
-              onClick: () => SessionService.ImportPinion("").then((c) => c && toast("success", `已匯入 ${c} 個 session`)),
+              onClick: () => SessionService.ImportPinion("").then((c) => c && toast("success", t("sidebar.imported", { count: c }))),
             },
           ])
         }
@@ -350,14 +353,14 @@ function SessionTree() {
         {renderNode(tree, 0)}
         {sessions.length === 0 && (
           <div className="p-4 text-center text-mute">
-            還沒有 session。
+            {t("sidebar.empty")}
             <br />
             <button className="mt-2 text-accent" onClick={() => set("sessionEditor", {})}>
-              新增一個
+              {t("sidebar.addOne")}
             </button>
-            {" 或 "}
+            {t("sidebar.or")}
             <button className="text-accent" onClick={() => set("importOpen", true)}>
-              匯入 Session 設定
+              {t("sidebar.importSettings")}
             </button>
           </div>
         )}

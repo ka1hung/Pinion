@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { create } from "zustand";
 import { X } from "lucide-react";
+import { useT } from "../lib/i18n";
 
 export function Modal(props: {
   title: ReactNode;
@@ -148,6 +149,7 @@ export function inputDialog(title: string, value = "", message?: ReactNode, pass
 }
 
 export function AskHost() {
+  const t = useT();
   const q = useAsk((s) => s.q);
   const [val, setVal] = useState("");
   useEffect(() => {
@@ -167,10 +169,10 @@ export function AskHost() {
         footer={
           <>
             <button className="btn" onClick={() => done(false)}>
-              取消
+              {t("common.cancel")}
             </button>
             <button autoFocus className={q.danger ? "btn-danger" : "btn-primary"} onClick={() => done(true)}>
-              {q.ok ?? "確定"}
+              {q.ok ?? t("common.ok")}
             </button>
           </>
         }
@@ -186,10 +188,10 @@ export function AskHost() {
       footer={
         <>
           <button className="btn" onClick={() => done(null)}>
-            取消
+            {t("common.cancel")}
           </button>
           <button className="btn-primary" onClick={() => done(val)}>
-            確定
+            {t("common.ok")}
           </button>
         </>
       }

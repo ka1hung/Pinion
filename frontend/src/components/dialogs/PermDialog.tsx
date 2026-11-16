@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal } from "../ui";
+import { useT, type TKey } from "../../lib/i18n";
 
 interface Props {
   entry: { name: string; path: string; perm: number; isDir: boolean; owner?: string; group?: string };
@@ -8,14 +9,14 @@ interface Props {
 }
 
 const WHO = [
-  { label: "擁有者 (Owner)", shift: 6 },
-  { label: "群組 (Group)", shift: 3 },
-  { label: "其他人 (Others)", shift: 0 },
+  { label: "perm.owner" as TKey, shift: 6 },
+  { label: "perm.group" as TKey, shift: 3 },
+  { label: "perm.others" as TKey, shift: 0 },
 ];
 const BITS = [
-  { label: "讀取 (r)", bit: 4 },
-  { label: "寫入 (w)", bit: 2 },
-  { label: "執行 (x)", bit: 1 },
+  { label: "perm.read" as TKey, bit: 4 },
+  { label: "perm.write" as TKey, bit: 2 },
+  { label: "perm.exec" as TKey, bit: 1 },
 ];
 
 function toText(mode: number, isDir: boolean) {
@@ -26,6 +27,7 @@ function toText(mode: number, isDir: boolean) {
 
 /** chmod dialog: 3×3 checkboxes kept in sync with an octal field. */
 export default function PermDialog({ entry, onClose, onApply }: Props) {
+  const t = useT();
   const [mode, setMode] = useState(entry.perm & 0o7777);
   const [octal, setOctal] = useState((entry.perm & 0o7777).toString(8).padStart(3, "0"));
   const set = (m: number) => {
@@ -35,16 +37,16 @@ export default function PermDialog({ entry, onClose, onApply }: Props) {
   const valid = /^[0-7]{3,4}$/.test(octal);
   return (
     <Modal
-      title="變更權限"
+      title={t("perm.title")}
       width={420}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
-            取消
+            {t("common.cancel")}
           </button>
           <button className="btn-primary" disabled={!valid} onClick={() => onApply(octal)}>
-            套用
+            {t("perm.apply")}
           </button>
         </>
       }
@@ -53,7 +55,7 @@ export default function PermDialog({ entry, onClose, onApply }: Props) {
         {entry.path}
         {(entry.owner || entry.group) && (
           <span className="ml-2">
-            （uid {entry.owner} / gid {entry.group}）
+            {t("perm.ids", { uid: entry.owner ?? "", gid: entry.group ?? "" })}
           </span>
         )}
       </div>
@@ -63,7 +65,7 @@ export default function PermDialog({ entry, onClose, onApply }: Props) {
             <th />
             {BITS.map((b) => (
               <th key={b.bit} className="pb-1 font-normal">
-                {b.label}
+                {t(b.label)}
               </th>
             ))}
           </tr>
@@ -71,7 +73,7 @@ export default function PermDialog({ entry, onClose, onApply }: Props) {
         <tbody>
           {WHO.map((w) => (
             <tr key={w.shift}>
-              <td className="py-1.5 pr-2">{w.label}</td>
+              <td className="py-1.5 pr-2">{t(w.label)}</td>
               {BITS.map((b) => {
                 const bit = b.bit << w.shift;
                 return (
@@ -91,7 +93,7 @@ export default function PermDialog({ entry, onClose, onApply }: Props) {
       </table>
       <div className="mt-4 flex items-center gap-3">
         <label className="flex items-center gap-2">
-          <span className="text-mute">八進位</span>
+          <span className="text-mute">{t("perm.octal")}</span>
           <input
             className={"input w-20 font-mono " + (valid ? "" : "!border-danger")}
             value={octal}

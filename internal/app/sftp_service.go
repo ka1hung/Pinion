@@ -407,7 +407,7 @@ func (s *SFTPService) Paste(tabID, mode string, sources []string, destDir string
 	if !overwrite {
 		for _, it := range items {
 			if it.Exists {
-				return "", fmt.Errorf("「%s」已存在", path.Base(it.Dst))
+				return "", fmt.Errorf("%q already exists", path.Base(it.Dst))
 			}
 		}
 	}

@@ -6,8 +6,10 @@ import { useStore, toast, type TermTab } from "../lib/store";
 import { terminals } from "../lib/terminals";
 import { TerminalService, SystemService, errMsg } from "../lib/api";
 import { Check } from "./ui";
+import { useT } from "../lib/i18n";
 
 function Lights({ id }: { id: string }) {
+  const tr = useT();
   const [, force] = useState(0);
   useEffect(() => {
     const inst = terminals.get(id);
@@ -30,7 +32,7 @@ function Lights({ id }: { id: string }) {
     <span className={"inline-block h-2.5 w-2.5 rounded-full border border-line " + (on ? color : "bg-transparent")} />
   );
   return (
-    <span className="flex items-center gap-1.5 text-[12px] text-mute" title="TX / RX 活動">
+    <span className="flex items-center gap-1.5 text-[12px] text-mute" title={tr("terminal.activity")}>
       {dot(now - a.tx < 120, "bg-ok")} TX {dot(now - a.rx < 120, "bg-danger")} RX
     </span>
   );
@@ -49,6 +51,7 @@ function ToolBtn(p: { on?: boolean; title: string; onClick: () => void; children
 }
 
 function SendBar({ tab }: { tab: TermTab }) {
+  const t = useT();
   const sess = useStore((s) => s.sessions.find((x) => x.id === tab.sessionId));
   const isNet = tab.type === "tcp" || tab.type === "udp";
   const [text, setText] = useState("");
@@ -77,7 +80,7 @@ function SendBar({ tab }: { tab: TermTab }) {
       </select>
       <input
         className="input flex-1 font-mono"
-        placeholder={format === "hex" ? "01 03 00 00 00 0A C5 CD" : format === "json" ? '{"cmd":"status"}' : "要送出的內容（Enter 送出，↑↓ 歷史）"}
+        placeholder={format === "hex" ? "01 03 00 00 00 0A C5 CD" : format === "json" ? '{"cmd":"status"}' : t("terminal.sendPlaceholder")}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
@@ -95,20 +98,21 @@ function SendBar({ tab }: { tab: TermTab }) {
           }
         }}
       />
-      <select className="input w-24" value={ending} onChange={(e) => setEnding(e.target.value)} title="附加結尾">
-        <option value="none">無結尾</option>
+      <select className="input w-24" value={ending} onChange={(e) => setEnding(e.target.value)} title={t("terminal.lineEnding")}>
+        <option value="none">{t("terminal.noEnding")}</option>
         <option value="cr">CR</option>
         <option value="lf">LF</option>
         <option value="crlf">CRLF</option>
       </select>
       <button className="btn-primary" onClick={send}>
-        <Send size={14} /> 送出
+        <Send size={14} /> {t("terminal.send")}
       </button>
     </div>
   );
 }
 
 function SearchBar({ id, onClose }: { id: string; onClose: () => void }) {
+  const t = useT();
   const [q, setQ] = useState("");
   const inst = terminals.get(id);
   const opts = { caseSensitive: false, decorations: { matchOverviewRuler: "#888", activeMatchColorOverviewRuler: "#fa0" } } as any;
@@ -117,7 +121,7 @@ function SearchBar({ id, onClose }: { id: string; onClose: () => void }) {
       <input
         autoFocus
         className="input w-56"
-        placeholder="搜尋"
+        placeholder={t("terminal.search")}
         value={q}
         onChange={(e) => {
           setQ(e.target.value);
@@ -149,6 +153,7 @@ function SearchBar({ id, onClose }: { id: string; onClose: () => void }) {
 }
 
 export default function TerminalView({ tab }: { tab: TermTab }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const updateTab = useStore((s) => s.updateTab);
   const [searching, setSearching] = useState(false);
@@ -174,7 +179,7 @@ export default function TerminalView({ tab }: { tab: TermTab }) {
   const toggleLog = async () => {
     try {
       const p = await TerminalService.SetLogging(tab.id, !tab.logPath);
-      if (p) toast("info", "Session log：" + p);
+      if (p) toast("info", t("terminal.logStarted", { path: p }));
     } catch (e) {
       toast("error", errMsg(e));
     }
@@ -188,7 +193,7 @@ export default function TerminalView({ tab }: { tab: TermTab }) {
     for (let i = 0; i < buf.length; i++) lines.push(buf.getLine(i)?.translateToString(true) ?? "");
     try {
       const p = await TerminalService.SaveOutput(`${tab.title}.log`, lines.join("\n").trimEnd() + "\n");
-      if (p) toast("success", "已儲存：" + p);
+      if (p) toast("success", t("terminal.saved", { path: p }));
     } catch (e) {
       toast("error", errMsg(e));
     }
@@ -204,7 +209,7 @@ export default function TerminalView({ tab }: { tab: TermTab }) {
         <span className="truncate text-[13px] text-mute">{tab.describe || tab.title}</span>
         {tab.state === "disconnected" && (
           <button className="btn ml-2 !py-0.5 text-[13px]" onClick={() => TerminalService.Reconnect(tab.id)}>
-            <RotateCw size={13} /> 重新連線
+            <RotateCw size={13} /> {t("terminal.reconnect")}
           </button>
         )}
         <div className="flex-1" />
@@ -212,16 +217,16 @@ export default function TerminalView({ tab }: { tab: TermTab }) {
           <>
             <Lights id={tab.id} />
             <div className="mx-1 h-4 border-l border-line" />
-            <ToolBtn on={tab.view.hex} title="HEX 顯示" onClick={() => setView({ hex: !tab.view.hex })}>
+            <ToolBtn on={tab.view.hex} title={t("terminal.hexTitle")} onClick={() => setView({ hex: !tab.view.hex })}>
               <Binary size={14} /> HEX
             </ToolBtn>
             {isNet && (
-              <ToolBtn on={tab.view.json} title="JSON 美化顯示" onClick={() => setView({ json: !tab.view.json })}>
+              <ToolBtn on={tab.view.json} title={t("terminal.jsonTitle")} onClick={() => setView({ json: !tab.view.json })}>
                 <Braces size={14} /> JSON
               </ToolBtn>
             )}
-            <ToolBtn on={tab.view.timestamp} title="時間戳記" onClick={() => setView({ timestamp: !tab.view.timestamp })}>
-              <Clock size={14} /> 時間
+            <ToolBtn on={tab.view.timestamp} title={t("terminal.timestampTitle")} onClick={() => setView({ timestamp: !tab.view.timestamp })}>
+              <Clock size={14} /> {t("terminal.time")}
             </ToolBtn>
           </>
         )}
@@ -234,32 +239,32 @@ export default function TerminalView({ tab }: { tab: TermTab }) {
             <Check checked={rts} onChange={(v) => (setRts(v), lc("rts", v))}>
               <span className="text-[13px]">RTS</span>
             </Check>
-            <ToolBtn title="送出 BREAK" onClick={() => lc("break", true)}>
+            <ToolBtn title={t("terminal.sendBreak")} onClick={() => lc("break", true)}>
               BRK
             </ToolBtn>
           </>
         )}
         <div className="mx-1 h-4 border-l border-line" />
-        <ToolBtn on={!!tab.logPath} title={tab.logPath ? "記錄中：" + tab.logPath + "（點擊停止）" : "開始 Session log（可能記錄到敏感內容）"} onClick={toggleLog}>
+        <ToolBtn on={!!tab.logPath} title={tab.logPath ? t("terminal.logging", { path: tab.logPath }) : t("terminal.startLog")} onClick={toggleLog}>
           <ScrollText size={14} />
         </ToolBtn>
         {tab.logPath && (
           <button
             className="icon-btn text-[12px]"
-            title="開啟 log 資料夾"
+            title={t("terminal.openLogFolder")}
             onClick={() => SystemService.OpenPath(tab.logPath.replace(/[\\/][^\\/]+$/, ""))}
           >
-            開啟
+            {t("common.open")}
           </button>
         )}
-        <ToolBtn title="搜尋 (⌘F / Ctrl+Shift+F)" onClick={() => setSearching(true)}>
+        <ToolBtn title={t("terminal.search") + " (⌘F / Ctrl+Shift+F)"} onClick={() => setSearching(true)}>
           <Search size={14} />
         </ToolBtn>
-        <ToolBtn title="另存輸出" onClick={saveOutput}>
+        <ToolBtn title={t("terminal.saveOutput")} onClick={saveOutput}>
           <FileDown size={14} />
         </ToolBtn>
         <ToolBtn
-          title="清除畫面"
+          title={t("terminal.clear")}
           onClick={() => {
             terminals.get(tab.id)?.term.clear();
             TerminalService.ClearScrollback(tab.id);
@@ -270,7 +275,7 @@ export default function TerminalView({ tab }: { tab: TermTab }) {
         {tab.type === "ssh" && (
           <ToolBtn
             on={sftpShown}
-            title="在左側顯示 SFTP 檔案列表"
+            title={t("terminal.showSftp")}
             onClick={() => {
               const st = useStore.getState();
               const open = !sftpShown;

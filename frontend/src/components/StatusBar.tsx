@@ -1,6 +1,8 @@
 import { useStore } from "../lib/store";
+import { useT, type TKey } from "../lib/i18n";
 
 export default function StatusBar() {
+  const tr = useT();
   const { tabs, activeId, multi } = useStore();
   const t = tabs.find((x) => x.id === activeId);
   const connected = tabs.filter((x) => x.kind === "terminal" && x.state === "connected").length;
@@ -9,13 +11,13 @@ export default function StatusBar() {
       {t?.kind === "terminal" && (
         <span>
           {t.describe || t.title}
-          {t.state !== "connected" && ` — ${t.state}${t.message ? ": " + t.message : ""}`}
+          {t.state !== "connected" && ` — ${tr(("common.state." + t.state) as TKey)}${t.message ? ": " + t.message : ""}`}
         </span>
       )}
       {t?.kind === "editor" && <span className="font-mono">{t.path}</span>}
       <div className="flex-1" />
-      {multi.on && <span className="text-accent">MultiExec：{multi.selected.length} 個分頁</span>}
-      <span>{connected} 個連線</span>
+      {multi.on && <span className="text-accent">{tr("statusbar.multiExec", { n: multi.selected.length })}</span>}
+      <span>{tr("statusbar.connections", { n: connected })}</span>
     </div>
   );
 }

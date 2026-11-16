@@ -146,6 +146,11 @@ export interface Settings {
      * system | dark | light
      */
     "theme": string;
+
+    /**
+     * system | zh-TW | en (UI text is translated in the frontend)
+     */
+    "language": string;
     "terminalFont": string;
     "terminalFontSize": number;
     "scrollback": number;

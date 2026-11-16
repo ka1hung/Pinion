@@ -12,6 +12,7 @@ import PermDialog from "./dialogs/PermDialog";
 import { useTransfers, useSftpClip } from "../lib/transfers";
 import { openRemoteFile, openExternal } from "../lib/editor";
 import { openMenu, confirmDialog, inputDialog, fmtBytes, fmtTime, Check } from "./ui";
+import { useT } from "../lib/i18n";
 
 interface Entry {
   name: string;
@@ -59,6 +60,7 @@ function resolveCwd(cwd: string, home: string) {
 }
 
 export default function SftpPanel({ tab }: { tab: TermTab }) {
+  const tr = useT(); // `t` is used below for transfer items
   const [dir, setDir] = useState(() => lastDir.get(tab.id) ?? "");
   const [perm, setPerm] = useState<Entry | null>(null);
   const follow = useStore((s) => s.settings?.sftpFollowTerminal ?? true);
@@ -239,13 +241,13 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
   };
 
   const rename = async (e: Entry) => {
-    const n = await inputDialog("重新命名", e.name);
+    const n = await inputDialog(tr("common.rename"), e.name);
     if (n && n !== e.name) run(SFTPService.Rename(tab.id, e.path, join(parent(e.path), n)));
   };
   const remove = async (list: Entry[]) => {
     if (!list.length) return;
-    const names = list.map((x) => x.name).slice(0, 8).join("\n") + (list.length > 8 ? `\n…共 ${list.length} 項` : "");
-    if (await confirmDialog("刪除遠端檔案", `確定刪除？資料夾會連同內容一起刪除。\n\n${names}`, { danger: true, ok: "刪除" }))
+    const names = list.map((x) => x.name).slice(0, 8).join("\n") + (list.length > 8 ? "\n" + tr("sftp.moreItems", { count: list.length }) : "");
+    if (await confirmDialog(tr("sftp.deleteTitle"), tr("sftp.deleteConfirm", { names }), { danger: true, ok: tr("common.delete") }))
       run(SFTPService.Remove(tab.id, list.map((x) => x.path)));
   };
   const chmod = (e: Entry) => setPerm(e);
@@ -259,14 +261,14 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
     ev.preventDefault();
     ev.stopPropagation();
     const d = JSON.parse(raw) as { tabId: string; paths: string[] };
-    if (d.tabId !== tab.id) return toast("error", "只能在同一個連線內拖放");
+    if (d.tabId !== tab.id) return toast("error", tr("sftp.dragSameConnection"));
     const paths = d.paths.filter((p) => p !== destDir);
     pasteInto(ev.ctrlKey || ev.altKey ? "copy" : "move", paths, destDir);
   };
   const toClip = (mode: "copy" | "move", list: Entry[]) => {
     if (!list.length) return;
     clip.set(tab.id, mode, list.map((x) => x.path));
-    toast("info", `已${mode === "move" ? "剪下" : "複製"} ${list.length} 項，到目標資料夾按 Ctrl+V 貼上`);
+    toast("info", tr(mode === "move" ? "sftp.cutDone" : "sftp.copyDone", { count: list.length }));
   };
   /** Copy/move remote paths into destDir (asks before overwriting). */
   const pasteInto = async (mode: "copy" | "move", paths: string[], destDir: string) => {
@@ -275,8 +277,8 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
       const conflicts = ((await SFTPService.PasteConflicts(tab.id, mode, paths, destDir)) ?? []) as string[];
       let overwrite = false;
       if (conflicts.length) {
-        const names = conflicts.slice(0, 8).join("\n") + (conflicts.length > 8 ? `\n…共 ${conflicts.length} 項` : "");
-        if (!(await confirmDialog("目標已存在", `以下項目在「${destDir}」已存在，要覆蓋嗎？\n\n${names}`, { danger: true, ok: "覆蓋" }))) return;
+        const names = conflicts.slice(0, 8).join("\n") + (conflicts.length > 8 ? "\n" + tr("sftp.moreItems", { count: conflicts.length }) : "");
+        if (!(await confirmDialog(tr("sftp.existsTitle"), tr("sftp.existsConfirm", { dir: destDir, names }), { danger: true, ok: tr("sftp.overwrite") }))) return;
         overwrite = true;
       }
       await SFTPService.Paste(tab.id, mode, paths, destDir, overwrite);
@@ -288,7 +290,7 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
   const pasteClip = (destDir: string) => clipFor && pasteInto(clipFor.mode, clipFor.paths, destDir);
 
   const newFolder = async () => {
-    const n = await inputDialog("新增資料夾", "");
+    const n = await inputDialog(tr("sftp.newFolder"), "");
     if (n) run(SFTPService.Mkdir(tab.id, join(dirRef.current, n)));
   };
   const download = (list: Entry[]) =>
@@ -299,35 +301,35 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
     const list = sel.has(e.path) ? selected : [e];
     openMenu(ev, [
       ...(e.isDir
-        ? [{ label: "開啟", icon: <Folder size={14} />, onClick: () => load(e.path) }]
+        ? [{ label: tr("common.open"), icon: <Folder size={14} />, onClick: () => load(e.path) }]
         : [
-            { label: "用內建編輯器開啟", icon: <FileCode size={14} />, onClick: () => openRemoteFile(tab.id, e.path, true) },
-            { label: "用外部編輯器開啟", icon: <ExternalLink size={14} />, onClick: () => openExternal(tab.id, e.path) },
+            { label: tr("sftp.openInternal"), icon: <FileCode size={14} />, onClick: () => openRemoteFile(tab.id, e.path, true) },
+            { label: tr("sftp.openExternal"), icon: <ExternalLink size={14} />, onClick: () => openExternal(tab.id, e.path) },
           ]),
-      { label: `下載${list.length > 1 ? `（${list.length} 項）` : ""}…`, icon: <Download size={14} />, onClick: () => download(list) },
+      { label: list.length > 1 ? tr("sftp.downloadN", { count: list.length }) : tr("sftp.download"), icon: <Download size={14} />, onClick: () => download(list) },
       { separator: true },
-      { label: "剪下", icon: <Scissors size={14} />, shortcut: "Ctrl+X", onClick: () => toClip("move", list) },
-      { label: "複製", icon: <Copy size={14} />, shortcut: "Ctrl+C", onClick: () => toClip("copy", list) },
+      { label: tr("sftp.cut"), icon: <Scissors size={14} />, shortcut: "Ctrl+X", onClick: () => toClip("move", list) },
+      { label: tr("common.copy"), icon: <Copy size={14} />, shortcut: "Ctrl+C", onClick: () => toClip("copy", list) },
       {
-        label: e.isDir ? "貼上到此資料夾" : "貼上",
+        label: e.isDir ? tr("sftp.pasteHere") : tr("common.paste"),
         icon: <ClipboardPaste size={14} />,
         shortcut: "Ctrl+V",
         disabled: !clipFor,
         onClick: () => pasteClip(e.isDir ? e.path : dir),
       },
       { separator: true },
-      { label: "重新命名", icon: <Pencil size={14} />, shortcut: "F2", onClick: () => rename(e) },
-      { label: "權限…", icon: <KeyRound size={14} />, onClick: () => chmod(e) },
-      { label: "複製路徑", icon: <Link2 size={14} />, shortcut: "Ctrl+Shift+C", onClick: () => Clipboard.SetText(list.map((x) => x.path).join("\n")) },
+      { label: tr("common.rename"), icon: <Pencil size={14} />, shortcut: "F2", onClick: () => rename(e) },
+      { label: tr("sftp.permissions"), icon: <KeyRound size={14} />, onClick: () => chmod(e) },
+      { label: tr("sftp.copyPath"), icon: <Link2 size={14} />, shortcut: "Ctrl+Shift+C", onClick: () => Clipboard.SetText(list.map((x) => x.path).join("\n")) },
       { separator: true },
-      { label: "刪除", icon: <Trash2 size={14} />, danger: true, onClick: () => remove(list) },
+      { label: tr("common.delete"), icon: <Trash2 size={14} />, danger: true, onClick: () => remove(list) },
     ]);
   };
 
   const bgMenu = (ev: React.MouseEvent) =>
     openMenu(ev, [
       {
-        label: clipFor ? `貼上（${clipFor.paths.length} 項，${clipFor.mode === "move" ? "搬移" : "複製"}）` : "貼上",
+        label: clipFor ? tr(clipFor.mode === "move" ? "sftp.pasteCut" : "sftp.pasteCopy", { count: clipFor.paths.length }) : tr("common.paste"),
         icon: <ClipboardPaste size={14} />,
         shortcut: "Ctrl+V",
         disabled: !clipFor,
@@ -335,27 +337,27 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
       },
       { separator: true },
       {
-        label: "新增資料夾",
+        label: tr("sftp.newFolder"),
         icon: <FolderPlus size={14} />,
         onClick: async () => {
-          const n = await inputDialog("新增資料夾", "");
+          const n = await inputDialog(tr("sftp.newFolder"), "");
           if (n) run(SFTPService.Mkdir(tab.id, join(dir, n)));
         },
       },
       {
-        label: "新增檔案",
+        label: tr("sftp.newFile"),
         icon: <FilePlus size={14} />,
         onClick: async () => {
-          const n = await inputDialog("新增檔案", "");
+          const n = await inputDialog(tr("sftp.newFile"), "");
           if (n) {
             await run(SFTPService.NewFile(tab.id, join(dir, n)));
             openRemoteFile(tab.id, join(dir, n), true);
           }
         },
       },
-      { label: "上傳檔案…", icon: <Upload size={14} />, onClick: () => SFTPService.UploadDialog(tab.id, dir).catch((e) => toast("error", errMsg(e))) },
-      { label: "重新整理", icon: <RefreshCw size={14} />, onClick: () => load(dir) },
-      { label: showHidden ? "隱藏 . 開頭檔案" : "顯示隱藏檔", onClick: () => setShowHidden(!showHidden) },
+      { label: tr("sftp.uploadFiles"), icon: <Upload size={14} />, onClick: () => SFTPService.UploadDialog(tab.id, dir).catch((e) => toast("error", errMsg(e))) },
+      { label: tr("common.refresh"), icon: <RefreshCw size={14} />, onClick: () => load(dir) },
+      { label: showHidden ? tr("sftp.hideHidden") : tr("sftp.showHidden"), onClick: () => setShowHidden(!showHidden) },
     ]);
 
   const allTransfers = useTransfers((x) => x.items);
@@ -371,49 +373,49 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
       onDragLeave={(e) => e.currentTarget === e.target && setDropHover(false)}
     >
       <div className="flex items-center gap-0.5 border-b border-line px-1.5 py-1">
-        <button className="icon-btn" title="上一層" onClick={goUp}>
+        <button className="icon-btn" title={tr("sftp.up")} onClick={goUp}>
           <ArrowUp size={15} />
         </button>
-        <button className="icon-btn" title="家目錄" onClick={() => SFTPService.Home(tab.id).then((h) => load(h))}>
+        <button className="icon-btn" title={tr("sftp.home")} onClick={() => SFTPService.Home(tab.id).then((h) => load(h))}>
           <Home size={15} />
         </button>
-        <button className="icon-btn" title="重新整理" onClick={() => load(dir)}>
+        <button className="icon-btn" title={tr("common.refresh")} onClick={() => load(dir)}>
           <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
         </button>
         <button
           className="icon-btn"
-          title="新增資料夾"
+          title={tr("sftp.newFolder")}
           onClick={async () => {
-            const n = await inputDialog("新增資料夾", "");
+            const n = await inputDialog(tr("sftp.newFolder"), "");
             if (n) run(SFTPService.Mkdir(tab.id, join(dir, n)));
           }}
         >
           <FolderPlus size={15} />
         </button>
-        <button className="icon-btn" title="上傳（也可把檔案拖進來）" onClick={() => SFTPService.UploadDialog(tab.id, dir).catch((e) => toast("error", errMsg(e)))}>
+        <button className="icon-btn" title={tr("sftp.uploadHint")} onClick={() => SFTPService.UploadDialog(tab.id, dir).catch((e) => toast("error", errMsg(e)))}>
           <Upload size={15} />
         </button>
-        <button className="icon-btn" title="下載選取項目" disabled={!selected.length} onClick={() => download(selected)}>
+        <button className="icon-btn" title={tr("sftp.downloadSelected")} disabled={!selected.length} onClick={() => download(selected)}>
           <Download size={15} />
         </button>
-        <button className="icon-btn" title="刪除選取項目" disabled={!selected.length} onClick={() => remove(selected)}>
+        <button className="icon-btn" title={tr("sftp.deleteSelected")} disabled={!selected.length} onClick={() => remove(selected)}>
           <Trash2 size={15} />
         </button>
         <span
           className="icon-btn ml-auto cursor-help"
           title={[
-            "鍵盤操作（先點一下列表，或按 Ctrl+Shift+E / ⌘E）",
-            "↑ ↓ / Home End / PgUp PgDn　移動",
-            "Shift+↑↓　多選　　Ctrl+A　全選",
-            "Enter　開啟資料夾 / 檔案",
-            "Backspace 或 Alt+↑　上一層（..）",
-            "F2　重新命名　　Delete　刪除",
-            "F5 / Ctrl+R　重新整理　　F7　新增資料夾",
-            "Ctrl+D　下載　　Ctrl+U　上傳",
-            "Ctrl+X / Ctrl+C / Ctrl+V　剪下 / 複製 / 貼上（在遠端主機上搬移或複製）",
-            "拖到資料夾或 ..　搬移（按住 Ctrl 為複製）",
-            "Ctrl+Shift+C　複製路徑　　直接打字　跳到檔名",
-            "Esc　回到終端機",
+            tr("sftp.keys.title"),
+            tr("sftp.keys.move"),
+            tr("sftp.keys.select"),
+            tr("sftp.keys.open"),
+            tr("sftp.keys.up"),
+            tr("sftp.keys.renameDelete"),
+            tr("sftp.keys.refreshNew"),
+            tr("sftp.keys.transfer"),
+            tr("sftp.keys.clip"),
+            tr("sftp.keys.drag"),
+            tr("sftp.keys.copyPath"),
+            tr("sftp.keys.esc"),
           ].join("\n")}
         >
           <Keyboard size={15} />
@@ -429,7 +431,7 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
         <div className="mt-1 flex items-center gap-3 px-0.5 text-[13px] text-mute">
           <Check
             checked={follow}
-            title="終端機 cd 到哪，檔案列表就跟到哪（需 shell 回報目錄或使用 user@host:dir# 樣式的提示字元）"
+            title={tr("sftp.followHint")}
             onChange={(v) => {
               const st = useStore.getState().settings;
               if (!st) return;
@@ -438,10 +440,10 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
               SystemService.SaveSettings(ns).catch((e) => toast("error", errMsg(e)));
             }}
           >
-            跟隨終端資料夾
+            {tr("sftp.follow")}
           </Check>
           <Check checked={showHidden} onChange={setShowHidden}>
-            顯示隱藏檔
+            {tr("sftp.showHidden")}
           </Check>
         </div>
       </div>
@@ -457,10 +459,10 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
         <table className="w-full table-fixed text-[13px]">
           <thead className="sticky top-0 bg-side text-mute">
             <tr>
-              <th className="whitespace-nowrap px-2 py-1 text-left font-normal">名稱</th>
-              <th className="w-[60px] whitespace-nowrap px-1 text-right font-normal">大小</th>
-              <th className="sftp-col-time w-[92px] whitespace-nowrap px-1 text-left font-normal">修改時間</th>
-              <th className="sftp-col-perm w-[84px] whitespace-nowrap px-1 text-left font-normal">權限</th>
+              <th className="whitespace-nowrap px-2 py-1 text-left font-normal">{tr("common.name")}</th>
+              <th className="w-[60px] whitespace-nowrap px-1 text-right font-normal">{tr("common.size")}</th>
+              <th className="sftp-col-time w-[92px] whitespace-nowrap px-1 text-left font-normal">{tr("common.modified")}</th>
+              <th className="sftp-col-perm w-[84px] whitespace-nowrap px-1 text-left font-normal">{tr("sftp.colPerm")}</th>
             </tr>
           </thead>
           <tbody onContextMenu={(e) => e.target === e.currentTarget && bgMenu(e)}>
@@ -481,7 +483,7 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
                 }}
                 onDragLeave={() => setDropDir("")}
                 onDrop={(ev) => dropOn(ev, parent(dir))}
-                title="上一層（Backspace）"
+                title={tr("sftp.upRow")}
               >
                 <td className="px-2 py-[3px]">
                   <span className="inline-flex items-center gap-1.5">
@@ -551,8 +553,8 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
             ))}
           </tbody>
         </table>
-        {!visible.length && !err && !loading && tab.state === "connected" && dir && <div className="p-4 text-center text-mute">（空資料夾）</div>}
-        {tab.state !== "connected" && !entries.length && <div className="p-4 text-center text-mute">等待 SSH 連線…</div>}
+        {!visible.length && !err && !loading && tab.state === "connected" && dir && <div className="p-4 text-center text-mute">{tr("sftp.emptyFolder")}</div>}
+        {tab.state !== "connected" && !entries.length && <div className="p-4 text-center text-mute">{tr("sftp.waiting")}</div>}
       </div>
       {tlist.length > 0 && (
         <div className="max-h-40 overflow-auto border-t border-line px-2 py-1 text-[13px]">
@@ -568,7 +570,7 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
                   </span>
                   <button
                     className="icon-btn !p-0"
-                    title={t.state === "running" ? "取消傳輸" : "移除"}
+                    title={t.state === "running" ? tr("sftp.cancelTransfer") : tr("common.remove")}
                     onClick={() => (t.state === "running" ? SFTPService.CancelTransfer(t.id) : dismissTransfer(t.id))}
                   >
                     <X size={12} />

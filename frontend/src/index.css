@@ -106,21 +106,31 @@ select {
 .term-host .xterm .xterm-viewport {
   background-color: transparent !important;
 }
-.term-host .xterm-viewport::-webkit-scrollbar {
+/* Windows/Linux-style scrollbars; macOS keeps its native overlay scrollbars. */
+html:not(.mac) .term-host .xterm-viewport::-webkit-scrollbar {
   width: 10px;
 }
-::-webkit-scrollbar {
+html:not(.mac) ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
-::-webkit-scrollbar-thumb {
+html:not(.mac) ::-webkit-scrollbar-thumb {
   background: rgba(121, 121, 121, 0.4);
 }
-::-webkit-scrollbar-thumb:hover {
+html:not(.mac) ::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 100, 100, 0.7);
 }
-::-webkit-scrollbar-track {
+html:not(.mac) ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* macOS: SF Pro renders larger than Segoe UI at the same px size, and WebKit's
+   default subpixel AA makes light-on-dark text look bold. */
+.mac body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Helvetica Neue", sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @layer components {
@@ -148,6 +158,18 @@ select {
   .chk {
     @apply accent-[var(--c-accent)];
   }
+
+  /* macOS: one size down, and borderless toolbar buttons like native apps.
+     Kept in the components layer so utility classes still override. */
+  .mac .btn,
+  .mac .btn-primary,
+  .mac .btn-danger,
+  .mac .input {
+    font-size: 13px;
+  }
+  .mac .toolbar .btn {
+    @apply border-transparent bg-transparent text-fg/85 hover:bg-hover hover:text-fg;
+  }
 }
 
 /* SFTP list in the sidebar: keep the name readable, drop columns when narrow */
@@ -161,6 +183,16 @@ select {
 }
 @container (max-width: 270px) {
   .sftp-col-time {
+    display: none;
+  }
+}
+
+/* Sidebar view tabs: drop the icons when the sidebar is too narrow for them */
+.sidebar-tabs {
+  container-type: inline-size;
+}
+@container (max-width: 330px) {
+  .sidebar-tab-icon {
     display: none;
   }
 }

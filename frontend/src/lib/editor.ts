@@ -3,6 +3,7 @@ import { EditorService } from "./services";
 import { errMsg } from "./api";
 import { useStore, toast, type EditorTab } from "./store";
 import { confirmDialog } from "../components/ui";
+import { t } from "./i18n";
 
 export interface Doc {
   id: string;
@@ -49,9 +50,9 @@ function findOpen(source: string, tabId: string, path: string) {
 async function handleTooLarge(d: Doc, reopen: () => Promise<Doc | null>, external?: () => void) {
   const limit = useStore.getState().settings?.bigFileLimitMB ?? 10;
   const ok = await confirmDialog(
-    "檔案過大",
-    `「${d.name}」超過 ${limit} MB。\n要以唯讀方式開啟${external ? "，或取消後改用外部編輯器" : ""}嗎？`,
-    { ok: "唯讀開啟" },
+    t("editor.tooLargeTitle"),
+    t(external ? "editor.tooLargeMsgExternal" : "editor.tooLargeMsg", { name: d.name, limit }),
+    { ok: t("editor.openReadOnly") },
   );
   if (!ok) {
     external?.();
@@ -109,7 +110,7 @@ export async function openLocalFile(path?: string): Promise<void> {
 export async function openExternal(tabId: string, path: string) {
   try {
     await EditorService.OpenExternal(tabId, path);
-    toast("info", `已用外部編輯器開啟 ${path.split("/").pop()}，存檔會自動上傳`);
+    toast("info", t("editor.openedExternal", { name: path.split("/").pop() ?? path }));
   } catch (e) {
     toast("error", errMsg(e));
   }
@@ -117,7 +118,7 @@ export async function openExternal(tabId: string, path: string) {
 
 export async function closeEditor(tab: EditorTab): Promise<boolean> {
   if (tab.dirty) {
-    const ok = await confirmDialog("尚未儲存", `「${tab.title}」有未儲存的變更，確定要關閉嗎？`, { danger: true, ok: "不儲存並關閉" });
+    const ok = await confirmDialog(t("editor.unsavedTitle"), t("editor.unsavedMsg", { name: tab.title }), { danger: true, ok: t("editor.closeWithoutSaving") });
     if (!ok) return false;
   }
   docs.delete(tab.docId);

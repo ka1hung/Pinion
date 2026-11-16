@@ -9,6 +9,7 @@ import { useStore, toast, type EditorTab } from "../lib/store";
 import { docs, openExternal, type Doc } from "../lib/editor";
 import { themeVariant } from "../lib/terminals";
 import { Modal } from "./ui";
+import { useT } from "../lib/i18n";
 
 const uriFor = (d: Doc) => monaco.Uri.parse(`pinion://doc/${d.id}/${encodeURIComponent(d.name)}`);
 
@@ -31,6 +32,7 @@ interface SaveResult {
 }
 
 export default function EditorView({ tab }: { tab: EditorTab }) {
+  const t = useT();
   const settings = useStore((s) => s.settings);
   const updateTab = useStore((s) => s.updateTab);
   const [doc, setDoc] = useState<Doc | undefined>(docs.get(tab.docId));
@@ -71,7 +73,7 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
     docs.set(d.id, nd);
     setDoc(nd);
     markClean();
-    toast("success", `已儲存 ${d.name}`);
+    toast("success", t("editor.saved", { name: d.name }));
   };
 
   const save = async (force = false, override?: Partial<Doc>) => {
@@ -89,7 +91,7 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
       if (r.conflict) setConflict({ remote: r.remoteContent, local: model.getValue() });
       else if (r.needSudo) setSudo({ pw: "" });
       else if (r.ok) applySaved(r, d, override);
-      else toast("error", r.message || "儲存失敗");
+      else toast("error", r.message || t("editor.saveFailed"));
     } catch (e) {
       toast("error", errMsg(e));
     } finally {
@@ -103,7 +105,7 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
     try {
       const r = (await EditorService.SaveSudo(doc.id, model.getValue(), doc.encoding, doc.eol, pw)) as SaveResult;
       if (r.ok) applySaved(r, doc);
-      else toast("error", r.message || "sudo 存檔失敗");
+      else toast("error", r.message || t("editor.sudoSaveFailed"));
     } catch (e) {
       toast("error", errMsg(e));
     }
@@ -125,7 +127,7 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
   const saveRef = useRef(save);
   saveRef.current = save;
 
-  if (!doc || !model) return <div className="p-4 text-mute">文件已關閉</div>;
+  if (!doc || !model) return <div className="p-4 text-mute">{t("editor.docClosed")}</div>;
 
   const tv = themeVariant();
   const theme = tv === "light" ? "light-modern" : tv === "modern" ? "dark-modern" : "dark-dim";
@@ -138,15 +140,15 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
         <span className="truncate font-mono">{host ? `${host}:${doc.path}` : doc.path}</span>
         <div className="flex-1" />
         {doc.source === "remote" && (
-          <button className="icon-btn flex items-center gap-1 text-[13px]" title="改用外部編輯器" onClick={() => openExternal(doc.tabId, doc.path)}>
-            <ExternalLink size={13} /> 外部編輯器
+          <button className="icon-btn flex items-center gap-1 text-[13px]" title={t("editor.externalTitle")} onClick={() => openExternal(doc.tabId, doc.path)}>
+            <ExternalLink size={13} /> {t("editor.external")}
           </button>
         )}
-        <button className="icon-btn flex items-center gap-1 text-[13px]" title="從來源重新載入" onClick={() => reload(doc.encoding)}>
-          <RefreshCw size={13} /> 重新載入
+        <button className="icon-btn flex items-center gap-1 text-[13px]" title={t("editor.reloadTitle")} onClick={() => reload(doc.encoding)}>
+          <RefreshCw size={13} /> {t("editor.reload")}
         </button>
         <button className="btn-primary !py-0.5 text-[13px]" disabled={doc.readOnly || saving || !tab.dirty} onClick={() => save()}>
-          儲存 {isMac ? "⌘S" : "Ctrl+S"}
+          {t("common.save")} {isMac ? "⌘S" : "Ctrl+S"}
         </button>
       </div>
       <div className="min-h-0 flex-1">
@@ -182,13 +184,13 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
       </div>
       <div className="flex h-6 shrink-0 items-center gap-3 border-t border-line bg-side px-3 text-[13px] text-mute">
         <span>
-          行 {pos.line}，欄 {pos.col}
+          {t("editor.cursorPos", { line: pos.line, col: pos.col })}
         </span>
         <div className="flex-1" />
         <select
           className="status-select"
           value={doc.encoding}
-          title="編碼：選擇後可「以此編碼重新開啟」或「以此編碼儲存」"
+          title={t("editor.encodingTitle")}
           onChange={async (e) => {
             const enc = e.target.value;
             const reopen = !tab.dirty;
@@ -198,7 +200,7 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
               docs.set(doc.id, nd);
               setDoc(nd);
               updateTab(tab.id, { dirty: true });
-              toast("info", `下次存檔會以 ${enc} 編碼寫入`);
+              toast("info", t("editor.encodingNextSave", { enc }));
             }
           }}
         >
@@ -211,7 +213,7 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
         <select
           className="status-select"
           value={doc.eol}
-          title="換行字元"
+          title={t("editor.eolTitle")}
           onChange={(e) => {
             const nd = { ...doc, eol: e.target.value };
             docs.set(doc.id, nd);
@@ -240,13 +242,13 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
 
       {conflict && (
         <Modal
-          title="遠端檔案已被修改"
+          title={t("editor.conflictTitle")}
           width={1000}
           onClose={() => setConflict(null)}
           footer={
             <>
               <button className="btn" onClick={() => setConflict(null)}>
-                取消
+                {t("common.cancel")}
               </button>
               <button
                 className="btn"
@@ -255,7 +257,7 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
                   reload(doc.encoding);
                 }}
               >
-                放棄我的變更，載入遠端版本
+                {t("editor.conflictDiscard")}
               </button>
               <button
                 className="btn-danger"
@@ -264,12 +266,12 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
                   save(true);
                 }}
               >
-                覆寫遠端
+                {t("editor.conflictOverwrite")}
               </button>
             </>
           }
         >
-          <div className="mb-2 text-mute">左：目前遠端內容　右：你的版本。開檔後有人改過這個檔案。</div>
+          <div className="mb-2 text-mute">{t("editor.conflictHint")}</div>
           <div className="h-[60vh] border border-line">
             <DiffEditor
               theme={theme}
@@ -284,26 +286,26 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
 
       {sudo && (
         <Modal
-          title="權限不足"
+          title={t("editor.sudoTitle")}
           width={460}
           onClose={() => setSudo(null)}
           footer={
             <>
               <button className="btn" onClick={() => setSudo(null)}>
-                取消
+                {t("common.cancel")}
               </button>
               <button className="btn-primary" onClick={() => saveSudo(sudo.pw)}>
-                用 sudo 存檔
+                {t("editor.sudoSave")}
               </button>
             </>
           }
         >
-          <p className="mb-2">沒有寫入「{doc.path}」的權限。要先上傳到暫存位置，再用 sudo 搬回原路徑嗎？</p>
+          <p className="mb-2">{t("editor.sudoMsg", { path: doc.path })}</p>
           <input
             autoFocus
             type="password"
             className="input"
-            placeholder="sudo 密碼（留空使用此 session 已存的密碼）"
+            placeholder={t("editor.sudoPlaceholder")}
             value={sudo.pw}
             onChange={(e) => setSudo({ pw: e.target.value })}
             onKeyDown={(e) => e.key === "Enter" && saveSudo(sudo.pw)}

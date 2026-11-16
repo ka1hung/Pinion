@@ -5,6 +5,7 @@ import { ServerService } from "../../lib/services";
 import { on, errMsg, SystemService } from "../../lib/api";
 import { toast } from "../../lib/store";
 import { Check, fmtBytes } from "../ui";
+import { useT } from "../../lib/i18n";
 
 interface Cfg {
   kind: string;
@@ -45,6 +46,7 @@ const DEFAULT_PORT: Record<string, number> = { tftp: 69, http: 8080, ftp: 2121 }
 const LABEL: Record<string, string> = { tftp: "TFTP", http: "HTTP", ftp: "FTP" };
 
 function ServerCard({ st, ifaces, defRoot }: { st: Status; ifaces: Iface[]; defRoot: string }) {
+  const t = useT();
   const [c, setC] = useState<Cfg>(() => ({ ...st.config, root: st.config.root || defRoot, port: st.config.port || DEFAULT_PORT[st.kind] }));
   useEffect(() => {
     if (st.running) setC({ ...st.config });
@@ -62,17 +64,17 @@ function ServerCard({ st, ifaces, defRoot }: { st: Status; ifaces: Iface[]; defR
         <span className={"h-2 w-2 rounded-full " + (st.running ? "bg-ok" : "bg-line")} />
         <span className="font-semibold">{LABEL[st.kind]}</span>
         <button className={"ml-auto shrink-0 " + (st.running ? "btn-danger !px-2 !py-0.5" : "btn-primary !px-2 !py-0.5")} onClick={toggle}>
-          {st.running ? <Square size={13} /> : <Play size={13} />} {st.running ? "停止" : "啟動"}
+          {st.running ? <Square size={13} /> : <Play size={13} />} {st.running ? t("servers.stop") : t("servers.start")}
         </button>
       </div>
       {st.running && (
-        <button className="mb-1.5 flex w-full min-w-0 items-center gap-1 font-mono text-[12px] text-accent" title="複製網址" onClick={() => Clipboard.SetText(st.url)}>
+        <button className="mb-1.5 flex w-full min-w-0 items-center gap-1 font-mono text-[12px] text-accent" title={t("servers.copyUrl")} onClick={() => Clipboard.SetText(st.url)}>
           <span className="truncate">{st.url}</span> <Copy size={11} className="shrink-0" />
         </button>
       )}
       <div className="grid grid-cols-3 gap-1.5 text-[13px]">
         <div className="col-span-3 flex gap-1">
-          <input className="input font-mono text-[13px]" disabled={dis} value={c.root} onChange={(e) => up({ root: e.target.value })} title="分享的資料夾" />
+          <input className="input font-mono text-[13px]" disabled={dis} value={c.root} onChange={(e) => up({ root: e.target.value })} title={t("servers.sharedFolder")} />
           <button
             className="icon-btn"
             disabled={dis}
@@ -83,25 +85,25 @@ function ServerCard({ st, ifaces, defRoot }: { st: Status; ifaces: Iface[]; defR
           >
             <FolderOpen size={14} />
           </button>
-          <button className="icon-btn" title="開啟資料夾" onClick={() => c.root && SystemService.OpenPath(c.root)}>
+          <button className="icon-btn" title={t("servers.openFolder")} onClick={() => c.root && SystemService.OpenPath(c.root)}>
             ↗
           </button>
         </div>
-        <select className="input col-span-2 text-[13px]" disabled={dis} value={c.bindIp || "0.0.0.0"} onChange={(e) => up({ bindIp: e.target.value })} title="網卡">
+        <select className="input col-span-2 text-[13px]" disabled={dis} value={c.bindIp || "0.0.0.0"} onChange={(e) => up({ bindIp: e.target.value })} title={t("servers.iface")}>
           {ifaces.map((i) => (
             <option key={i.ip + i.name} value={i.ip}>{i.label}</option>
           ))}
         </select>
-        <input className="input text-[13px]" disabled={dis} type="number" value={c.port} onChange={(e) => up({ port: Number(e.target.value) })} title="Port" />
+        <input className="input text-[13px]" disabled={dis} type="number" value={c.port} onChange={(e) => up({ port: Number(e.target.value) })} title={t("servers.port")} />
         {st.kind !== "tftp" && (
           <>
-            <input className="input text-[13px]" disabled={dis} placeholder="帳號（空=匿名）" value={c.user} onChange={(e) => up({ user: e.target.value })} />
-            <input className="input col-span-2 text-[13px]" disabled={dis} type="password" placeholder="密碼" value={c.password} onChange={(e) => up({ password: e.target.value })} />
+            <input className="input text-[13px]" disabled={dis} placeholder={t("servers.userPlaceholder")} value={c.user} onChange={(e) => up({ user: e.target.value })} />
+            <input className="input col-span-2 text-[13px]" disabled={dis} type="password" placeholder={t("servers.password")} value={c.password} onChange={(e) => up({ password: e.target.value })} />
           </>
         )}
         <div className="col-span-3">
           <Check checked={c.writable} onChange={(v) => !dis && up({ writable: v })}>
-            <span className="text-[13px]">允許上傳 / 寫入</span>
+            <span className="text-[13px]">{t("servers.allowWrite")}</span>
           </Check>
         </div>
       </div>
@@ -111,6 +113,7 @@ function ServerCard({ st, ifaces, defRoot }: { st: Status; ifaces: Iface[]; defR
 }
 
 export default function ServersPanel() {
+  const t = useT();
   const [status, setStatus] = useState<Status[]>([]);
   const [ifaces, setIfaces] = useState<Iface[]>([]);
   const [defRoot, setDefRoot] = useState("");
@@ -132,12 +135,12 @@ export default function ServersPanel() {
         {status.map((s) => (
           <ServerCard key={s.kind} st={s} ifaces={ifaces} defRoot={defRoot} />
         ))}
-        <div className="text-[12px] text-mute">預設只讀、閒置自動關閉。首次啟動時系統防火牆可能會詢問是否允許。</div>
+        <div className="text-[12px] text-mute">{t("servers.note")}</div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col border-t border-line">
         <div className="flex items-center px-2 py-1 text-[13px] text-mute">
-          傳輸紀錄
-          <button className="ml-auto text-accent" onClick={() => setLogs([])}>清除</button>
+          {t("servers.log")}
+          <button className="ml-auto text-accent" onClick={() => setLogs([])}>{t("servers.clear")}</button>
         </div>
         <div className="min-h-0 flex-1 overflow-auto px-2 font-mono text-[12px]">
           {logs.map((l, i) => (

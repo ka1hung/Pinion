@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { on, errMsg } from "./api";
 import { toast } from "./store";
+import { t as tr, type TKey } from "./i18n";
 
 export interface Transfer {
   id: string;
@@ -33,7 +34,9 @@ export const useTransfers = create<{ items: Record<string, Transfer>; dismiss: (
   }),
 );
 
-export const KIND_LABEL: Record<string, string> = { upload: "上傳", download: "下載", copy: "複製", move: "搬移" };
+const KINDS = ["upload", "download", "copy", "move"];
+/** Localized label for a transfer kind (resolved at call time, so it follows the language setting). */
+export const kindLabel = (kind: string) => (KINDS.includes(kind) ? tr(`transfers.kind.${kind}` as TKey) : kind);
 
 /** Remote clipboard for SFTP cut/copy/paste (per SSH tab). */
 export const useSftpClip = create<{ tabId: string; mode: "copy" | "move"; paths: string[]; set: (tabId: string, mode: "copy" | "move", paths: string[]) => void; clear: () => void }>(
@@ -55,7 +58,7 @@ export function initTransfers() {
     if (prev && prev.state !== "running") return; // ignore late progress after the final state
     useTransfers.setState((s) => ({ items: { ...s.items, [t.id]: t } }));
     if (t.state === "running") return;
-    if (t.state === "error") toast("error", `${KIND_LABEL[t.kind] ?? t.kind}失敗：${errMsg(t.error)}`);
+    if (t.state === "error") toast("error", tr("transfers.failed", { kind: kindLabel(t.kind), error: errMsg(t.error) }));
     // finished entries clear themselves; failures stay a bit longer
     const ttl = t.state === "done" ? 3000 : 10000;
     setTimeout(() => useTransfers.getState().dismiss(t.id), ttl);

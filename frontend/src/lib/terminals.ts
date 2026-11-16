@@ -11,6 +11,7 @@ import { Clipboard, Browser } from "@wailsio/runtime";
 import { TerminalService, isMac } from "./api";
 import { useStore, type ViewOpts } from "./store";
 import { openMenu } from "../components/ui";
+import { t } from "./i18n";
 
 let streamInfo: { port: number; token: string } | null = null;
 async function getStreamInfo() {
@@ -184,12 +185,12 @@ class TermInstance {
       }
       const has = this.term.hasSelection();
       openMenu(ev, [
-        { label: "複製", disabled: !has, shortcut: isMac ? "⌘C" : "Ctrl+C", onClick: () => this.copySelection() },
-        { label: "貼上", shortcut: isMac ? "⌘V" : "Ctrl+V", onClick: () => this.pasteClipboard() },
-        { label: "全選", onClick: () => this.term.selectAll() },
+        { label: t("common.copy"), disabled: !has, shortcut: isMac ? "⌘C" : "Ctrl+C", onClick: () => this.copySelection() },
+        { label: t("common.paste"), shortcut: isMac ? "⌘V" : "Ctrl+V", onClick: () => this.pasteClipboard() },
+        { label: t("terminal.selectAll"), onClick: () => this.term.selectAll() },
         { separator: true },
-        { label: "搜尋…", shortcut: isMac ? "⌘F" : "Ctrl+Shift+F", onClick: () => window.dispatchEvent(new CustomEvent("pinion:term-search", { detail: this.id })) },
-        { label: "清除畫面", onClick: () => this.term.clear() },
+        { label: t("terminal.searchEllipsis"), shortcut: isMac ? "⌘F" : "Ctrl+Shift+F", onClick: () => window.dispatchEvent(new CustomEvent("pinion:term-search", { detail: this.id })) },
+        { label: t("terminal.clear"), onClick: () => this.term.clear() },
       ]);
     });
     // Middle click pastes (X11 habit)

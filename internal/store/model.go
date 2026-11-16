@@ -113,7 +113,8 @@ type NetConfig struct {
 
 // Settings are global preferences.
 type Settings struct {
-	Theme            string `json:"theme"` // system | dark | light
+	Theme            string `json:"theme"`    // system | dark | light
+	Language         string `json:"language"` // system | zh-TW | en (UI text is translated in the frontend)
 	TerminalFont     string `json:"terminalFont"`
 	TerminalFontSize int    `json:"terminalFontSize"`
 	Scrollback       int    `json:"scrollback"`
@@ -152,6 +153,7 @@ type Settings struct {
 func DefaultSettings() Settings {
 	return Settings{
 		Theme:              "system",
+		Language:           "system",
 		TerminalFont:       `Menlo, Consolas, "DejaVu Sans Mono", "Noto Sans Mono CJK TC", monospace`,
 		TerminalFontSize:   14,
 		Scrollback:         10000,

@@ -6,6 +6,7 @@ export type * as store from "../../bindings/github.com/ka1hung/pinion/internal/s
 export type * as tabs from "../../bindings/github.com/ka1hung/pinion/internal/tabs/models";
 
 import { Events } from "@wailsio/runtime";
+import { t } from "./i18n";
 
 /** Subscribe to a backend event; returns an unsubscribe function. */
 export function on<T = any>(name: string, cb: (data: T) => void): () => void {
@@ -14,7 +15,7 @@ export function on<T = any>(name: string, cb: (data: T) => void): () => void {
 
 /** Turn any thrown value from a binding into a readable message. */
 export function errMsg(e: unknown): string {
-  if (!e) return "未知錯誤";
+  if (!e) return t("common.unknownError");
   if (typeof e === "string") return e;
   const anyE = e as any;
   if (anyE.message) {
@@ -46,5 +47,7 @@ export namespace prompt {
     fingerprint?: string;
     canSave?: boolean;
     tabId?: string;
+    /** Values for building localized text (title/message/labels are English fallbacks). */
+    params?: Record<string, string>;
   }
 }

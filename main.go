@@ -54,7 +54,7 @@ func main() {
 			Theme: windowsTheme(core.Store.Settings().Theme),
 		},
 		Mac: application.MacWindow{
-			InvisibleTitleBarHeight: 38,
+			InvisibleTitleBarHeight: 52, // matches the toolbar height (Toolbar.tsx)
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
 	})

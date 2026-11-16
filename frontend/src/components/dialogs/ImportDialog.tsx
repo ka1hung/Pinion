@@ -5,12 +5,14 @@ import { errMsg } from "../../lib/api";
 import { useStore, toast } from "../../lib/store";
 import { Modal, Field } from "../ui";
 import { typeIcon } from "../Sidebar";
+import { useT } from "../../lib/i18n";
 
 export default function ImportDialog() {
+  const t = useT();
   const set = useStore((s) => s.set);
   const [paths, setPaths] = useState<string[]>([]);
   const [path, setPath] = useState("");
-  const [folder, setFolder] = useState("匯入");
+  const [folder, setFolder] = useState(() => t("importDialog.defaultFolder"));
   const [res, setRes] = useState<any>(null);
   const [busy, setBusy] = useState(false);
 
@@ -39,7 +41,7 @@ export default function ImportDialog() {
     setBusy(true);
     try {
       const n = await ImportService.Commit(path, folder);
-      toast("success", `已匯入 ${n} 個 session`);
+      toast("success", t("importDialog.imported", { n }));
       set("importOpen", false);
     } catch (e) {
       toast("error", errMsg(e));
@@ -52,39 +54,39 @@ export default function ImportDialog() {
   const skipped = (res?.skipped ?? []).filter(Boolean);
   return (
     <Modal
-      title="匯入 Session 設定"
+      title={t("importDialog.title")}
       width={720}
       onClose={() => set("importOpen", false)}
       footer={
         <>
-          <button className="btn" onClick={() => set("importOpen", false)}>取消</button>
+          <button className="btn" onClick={() => set("importOpen", false)}>{t("common.cancel")}</button>
           <button className="btn-primary" disabled={!sessions.length || busy} onClick={commit}>
-            匯入 {sessions.length} 個 session
+            {t("importDialog.importN", { n: sessions.length })}
           </button>
         </>
       }
     >
       <p className="mb-3 text-mute">
-        選擇其他終端工具的 session 設定檔（.ini 或匯出的 .mxtsessions）。會匯入 SSH、Telnet、Serial 與本機 Shell；原檔中的密碼是加密的，不會匯入，第一次連線時再輸入並勾選記住即可。
+        {t("importDialog.intro")}
       </p>
-      <Field label="來源檔案">
+      <Field label={t("importDialog.source")}>
         <div className="flex gap-1">
           <select className="input" value={path} onChange={(e) => preview(e.target.value)}>
-            {!path && <option value="">（尚未選擇）</option>}
+            {!path && <option value="">{t("importDialog.notSelected")}</option>}
             {[...new Set([path, ...paths].filter(Boolean))].map((p) => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
-          <button className="btn" onClick={pick}><FolderOpen size={14} /> 選擇…</button>
+          <button className="btn" onClick={pick}><FolderOpen size={14} /> {t("importDialog.choose")}</button>
         </div>
       </Field>
-      <Field label="匯入到資料夾" className="mt-3">
+      <Field label={t("importDialog.targetFolder")} className="mt-3">
         <input className="input" value={folder} onChange={(e) => setFolder(e.target.value)} />
       </Field>
       {res && (
         <div className="mt-3">
           <div className="mb-1 text-[13px] text-mute">
-            編碼：{res.encoding}　可匯入 {sessions.length}　略過 {skipped.length}
+            {t("importDialog.summary", { encoding: res.encoding, n: sessions.length, skipped: skipped.length })}
           </div>
           {(res.warnings ?? []).map((w: string, i: number) => (
             <div key={i} className="mb-1 text-[13px] text-warn">⚠ {w}</div>

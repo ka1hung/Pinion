@@ -3,8 +3,10 @@ import { useStore } from "../../lib/store";
 import { openAdhoc, openSession, parseQuick } from "../../lib/actions";
 import { Modal } from "../ui";
 import { typeIcon } from "../Sidebar";
+import { useT } from "../../lib/i18n";
 
 export default function QuickConnect() {
+  const tr = useT();
   const { sessions, set } = useStore();
   const [q, setQ] = useState("");
   const [idx, setIdx] = useState(0);
@@ -22,11 +24,11 @@ export default function QuickConnect() {
     close();
   };
   return (
-    <Modal title="快速連線" onClose={close} width={520}>
+    <Modal title={tr("quickConnect.title")} onClose={close} width={520}>
       <input
         autoFocus
         className="input"
-        placeholder="搜尋 session，或輸入 user@host:port / telnet://host / COM3"
+        placeholder={tr("quickConnect.placeholder")}
         value={q}
         onChange={(e) => {
           setQ(e.target.value);
@@ -45,7 +47,7 @@ export default function QuickConnect() {
             <span className="ml-auto text-[13px] text-mute">{s.folder}</span>
           </div>
         ))}
-        {!matches.length && q && <div className="px-2 py-1 text-mute">Enter 直接連線到「{q}」</div>}
+        {!matches.length && q && <div className="px-2 py-1 text-mute">{tr("quickConnect.enterToConnect", { q })}</div>}
       </div>
     </Modal>
   );

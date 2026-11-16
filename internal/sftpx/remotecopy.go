@@ -32,7 +32,7 @@ func PlanPaste(cl *sftp.Client, mode string, srcs []string, dstDir string) ([]Pa
 			return nil, fmt.Errorf("%s: %w", src, err)
 		}
 		if fi.IsDir() && (dstDir == src || strings.HasPrefix(dstDir, src+"/")) {
-			return nil, fmt.Errorf("不能把資料夾「%s」放進它自己裡面", path.Base(src))
+			return nil, fmt.Errorf("cannot copy folder %q into itself", path.Base(src))
 		}
 		dst := path.Join(dstDir, path.Base(src))
 		if dst == src {

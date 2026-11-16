@@ -1,0 +1,34 @@
+// Top toolbar strings. Keys are prefixed "toolbar.".
+export const zh = {
+  "toolbar.sidebar": "側邊欄 ({key})",
+  "toolbar.newSession": "新增 Session ({key})",
+  "toolbar.local": "本機",
+  "toolbar.localTitle": "本機終端機 ({key})",
+  "toolbar.openFile": "開檔",
+  "toolbar.openFileTitle": "開啟本機檔案",
+  "toolbar.split": "分割",
+  "toolbar.splitTitle": "分割畫面",
+  "toolbar.multiExecTitle": "MultiExec：一次送指令到多個分頁",
+  "toolbar.import": "匯入",
+  "toolbar.importTitle": "匯入 Session 設定（.ini / .mxtsessions）",
+  "toolbar.quickPlaceholder": "快速連線 user@host:port",
+  "toolbar.quickTitle": "ssh://、telnet://、tcp://、udp://、COM3 或 /dev/ttyUSB0",
+  "toolbar.settings": "設定 ({key})",
+} as const;
+
+export const en: Record<keyof typeof zh, string> = {
+  "toolbar.sidebar": "Sidebar ({key})",
+  "toolbar.newSession": "New Session ({key})",
+  "toolbar.local": "Local",
+  "toolbar.localTitle": "Local terminal ({key})",
+  "toolbar.openFile": "Open",
+  "toolbar.openFileTitle": "Open a local file",
+  "toolbar.split": "Split",
+  "toolbar.splitTitle": "Split view",
+  "toolbar.multiExecTitle": "MultiExec: send input to several tabs at once",
+  "toolbar.import": "Import",
+  "toolbar.importTitle": "Import Session settings (.ini / .mxtsessions)",
+  "toolbar.quickPlaceholder": "Quick connect user@host:port",
+  "toolbar.quickTitle": "ssh://, telnet://, tcp://, udp://, COM3 or /dev/ttyUSB0",
+  "toolbar.settings": "Settings ({key})",
+};
