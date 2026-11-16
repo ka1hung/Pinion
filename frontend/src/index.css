@@ -1,0 +1,166 @@
+@import "tailwindcss";
+@import "@xterm/xterm/css/xterm.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-base: var(--c-base);
+  --color-side: var(--c-side);
+  --color-panel: var(--c-panel);
+  --color-line: var(--c-line);
+  --color-fg: var(--c-fg);
+  --color-mute: var(--c-mute);
+  --color-accent: var(--c-accent);
+  --color-accentfg: var(--c-accentfg);
+  --color-hover: var(--c-hover);
+  --color-input: var(--c-input);
+  --color-sel: var(--c-sel);
+  --color-danger: var(--c-danger);
+  --color-ok: var(--c-ok);
+  --color-warn: var(--c-warn);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", Ubuntu, sans-serif;
+  --font-mono: Menlo, Consolas, "DejaVu Sans Mono", "Noto Sans Mono CJK TC", monospace;
+}
+
+/* VS Code Light Modern / Dark Modern palettes */
+:root {
+  --c-base: #ffffff;
+  --c-side: #f8f8f8;
+  --c-panel: #f3f3f3;
+  --c-line: #e5e5e5;
+  --c-fg: #2b2b2b;
+  --c-mute: #5f6368;
+  --c-accent: #005fb8;
+  --c-accentfg: #ffffff;
+  --c-hover: #e8e8e8;
+  --c-input: #ffffff;
+  --c-sel: #d6e7f7;
+  --c-danger: #c72e0f;
+  --c-ok: #2e7d32;
+  --c-warn: #b26a00;
+  color-scheme: light;
+}
+/* Default dark: soft slate ("dimmed") — easier on the eyes than near-black */
+.dark {
+  --c-base: #22272e;
+  --c-side: #1c2128;
+  --c-panel: #1c2128;
+  --c-line: #3d4450;
+  --c-fg: #dde3ea;
+  --c-mute: #a3adb8;
+  --c-accent: #3b82d6;
+  --c-accentfg: #ffffff;
+  --c-hover: #2d333b;
+  --c-input: #2d333b;
+  --c-sel: #2e4a6b;
+  --c-danger: #f47067;
+  --c-ok: #57ab5a;
+  --c-warn: #c69026;
+  color-scheme: dark;
+}
+/* VS Code Dark Modern (near-black) */
+.dark.dark-modern {
+  --c-base: #1f1f1f;
+  --c-side: #181818;
+  --c-panel: #181818;
+  --c-line: #2b2b2b;
+  --c-fg: #cccccc;
+  --c-mute: #9d9d9d;
+  --c-accent: #0078d4;
+  --c-hover: #2a2d2e;
+  --c-input: #313131;
+  --c-sel: #04395e;
+  --c-danger: #f85149;
+  --c-ok: #2ea043;
+  --c-warn: #cca700;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+body {
+  background: var(--c-base);
+  color: var(--c-fg);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+input,
+textarea,
+select {
+  user-select: text;
+  -webkit-user-select: text;
+}
+.term-host {
+  box-sizing: border-box;
+  padding: 4px 0 0 6px;
+}
+.term-host .xterm {
+  height: 100%;
+}
+.term-host .xterm .xterm-viewport {
+  background-color: transparent !important;
+}
+.term-host .xterm-viewport::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(121, 121, 121, 0.4);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 100, 0.7);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-[14px] border border-line bg-panel hover:bg-hover disabled:opacity-50 cursor-default whitespace-nowrap;
+  }
+  .btn-primary {
+    @apply inline-flex items-center gap-1.5 rounded px-3 py-1 text-[14px] bg-accent text-accentfg hover:opacity-90 disabled:opacity-50 cursor-default whitespace-nowrap;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-1.5 rounded px-3 py-1 text-[14px] bg-danger text-white hover:opacity-90 disabled:opacity-50 cursor-default;
+  }
+  .icon-btn {
+    @apply inline-flex items-center justify-center rounded p-1 text-mute hover:bg-hover hover:text-fg disabled:opacity-40 cursor-default;
+  }
+  .input {
+    @apply w-full rounded border border-line bg-input px-2 py-1 text-[14px] text-fg outline-none focus:border-accent;
+  }
+  .label {
+    @apply block text-[13px] text-mute mb-1;
+  }
+  .status-select {
+    @apply appearance-none bg-transparent px-1 outline-none hover:bg-hover rounded cursor-default;
+  }
+  .chk {
+    @apply accent-[var(--c-accent)];
+  }
+}
+
+/* SFTP list in the sidebar: keep the name readable, drop columns when narrow */
+.sftp-panel {
+  container-type: inline-size;
+}
+@container (max-width: 360px) {
+  .sftp-col-perm {
+    display: none;
+  }
+}
+@container (max-width: 270px) {
+  .sftp-col-time {
+    display: none;
+  }
+}

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Name=Pinion
+Comment=Cross-platform SSH / Serial / Telnet terminal with SFTP, tunnels and quick servers
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/local/bin/Pinion %u
+Terminal=false
+Type=Application
+Icon=Pinion
+Categories=Utility;Network;TerminalEmulator;
+StartupWMClass=Pinion
+
+ 

@@ -1,0 +1,150 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  # Manual run from the Actions tab: creates the tag and release itself.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to create, e.g. v0.1.0-alpha.1"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  WAILS_VERSION: v3.1.0
+  VERSION: ${{ inputs.version || github.ref_name }}
+  VERSION_LDFLAG: -X=github.com/ka1hung/pinion/internal/app.Version=${{ inputs.version || github.ref_name }}
+
+jobs:
+  macos:
+    name: macOS (arm64)
+    runs-on: macos-latest # Apple Silicon runner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install wails3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
+      - name: Build arm64 .app
+        run: wails3 task darwin:package ARCH=arm64 EXTRA_LDFLAGS="${VERSION_LDFLAG}"
+      - name: Zip
+        run: |
+          mkdir -p dist
+          mkdir -p pkg && cp -R bin/Pinion.app LICENSE THIRD_PARTY_NOTICES.txt README.md README.en.md pkg/
+          (cd pkg && ditto -c -k --sequesterRsrc . "../dist/Pinion-${VERSION}-macos-arm64.zip")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*
+          if-no-files-found: error
+
+  windows:
+    name: Windows (x64)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install wails3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
+      - name: Build
+        run: wails3 task windows:build EXTRA_LDFLAGS="${VERSION_LDFLAG}"
+      - name: Zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path bin/Pinion.exe, LICENSE, THIRD_PARTY_NOTICES.txt, README.md, README.en.md -DestinationPath "dist/Pinion-$env:VERSION-windows-x64.zip"
+      - name: NSIS installer (optional)
+        continue-on-error: true
+        run: |
+          choco install nsis -y --no-progress
+          export PATH="$PATH:/c/Program Files (x86)/NSIS"
+          wails3 task windows:package EXTRA_LDFLAGS="${VERSION_LDFLAG}"
+          cp bin/Pinion-amd64-installer.exe "dist/Pinion-${VERSION}-windows-x64-setup.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+          if-no-files-found: error
+
+  linux:
+    name: Linux (x64)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GTK4 / WebKitGTK 6 dev packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev pkg-config
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install wails3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
+      - name: Build
+        run: wails3 task linux:build EXTRA_LDFLAGS="${VERSION_LDFLAG}"
+      - name: Tarball
+        run: |
+          mkdir -p dist
+          tar -czf "dist/Pinion-${VERSION}-linux-x64.tar.gz" -C bin Pinion -C .. LICENSE THIRD_PARTY_NOTICES.txt README.md README.en.md
+      - name: .deb package (optional)
+        continue-on-error: true
+        run: |
+          wails3 task linux:create:deb EXTRA_LDFLAGS="${VERSION_LDFLAG}"
+          deb=$(ls bin/*.deb | head -n1)
+          cp "$deb" "dist/Pinion-${VERSION}-linux-x64.deb"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [macos, windows, linux]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: |
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          tag_name: ${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          prerelease: ${{ contains(env.VERSION, '-') }}

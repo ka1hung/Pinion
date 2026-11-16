@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Pinion
+Exec=Pinion
+Icon=Pinion
+Categories=Network;TerminalEmulator;Utility;
+Terminal=false
+Keywords=wails
+Version=1.0
+StartupNotify=false
