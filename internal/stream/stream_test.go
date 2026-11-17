@@ -87,3 +87,125 @@ func TestHubBindsLoopbackOnly(t *testing.T) {
 		t.Fatal("token should be 32 random bytes hex")
 	}
 }
+
+func dialHub(t *testing.T, h *Hub, id string) (*websocket.Conn, context.Context) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+	c, _, err := websocket.Dial(ctx, fmt.Sprintf("ws://127.0.0.1:%d/ws/%s?token=%s", h.Port(), id, h.Token()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.SetReadLimit(1 << 20)
+	t.Cleanup(func() { c.CloseNow() })
+	return c, ctx
+}
+
+// An idle channel must deliver output immediately (keystroke echo), not on
+// the next 16ms tick.
+func TestIdleOutputIsNotDelayed(t *testing.T) {
+	h, err := NewHub()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	ch := h.Open("e", &rec{})
+	c, ctx := dialHub(t, h, "e")
+	time.Sleep(50 * time.Millisecond) // attach settles
+
+	var worst time.Duration
+	for i := 0; i < 20; i++ {
+		time.Sleep(30 * time.Millisecond) // idle longer than flushInterval
+		start := time.Now()
+		ch.Write([]byte("x"))
+		if _, _, err := c.Read(ctx); err != nil {
+			t.Fatal(err)
+		}
+		worst = max(worst, time.Since(start))
+	}
+	t.Logf("worst idle echo latency: %v", worst)
+	if worst > 8*time.Millisecond {
+		t.Fatalf("idle echo took %v", worst)
+	}
+}
+
+// Under a burst, writes are still coalesced into few frames.
+func TestBurstIsCoalesced(t *testing.T) {
+	h, err := NewHub()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	ch := h.Open("b", &rec{})
+	c, ctx := dialHub(t, h, "b")
+	time.Sleep(50 * time.Millisecond)
+
+	const writes, size = 2000, 100
+	go func() {
+		for i := 0; i < writes; i++ {
+			ch.Write(make([]byte, size))
+		}
+	}()
+	frames, got := 0, 0
+	for got < writes*size {
+		_, b, err := c.Read(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		frames++
+		got += len(b)
+	}
+	t.Logf("%d writes -> %d frames", writes, frames)
+	if frames > writes/10 {
+		t.Fatalf("burst not coalesced: %d frames", frames)
+	}
+}
+
+func TestPauseBlocksProducer(t *testing.T) {
+	h, err := NewHub()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	ch := h.Open("p", &rec{})
+	c, ctx := dialHub(t, h, "p")
+
+	c.Write(ctx, websocket.MessageText, []byte(`{"t":"pause"}`))
+	waitBlocked := func() bool {
+		done := make(chan struct{})
+		go func() { ch.Wait(context.Background()); close(done) }()
+		select {
+		case <-done:
+			return false
+		case <-time.After(100 * time.Millisecond):
+			return true
+		}
+	}
+	// give the reader a moment to apply the pause
+	deadline := time.Now().Add(time.Second)
+	for !waitBlocked() {
+		if time.Now().After(deadline) {
+			t.Fatal("pause not applied")
+		}
+	}
+	c.Write(ctx, websocket.MessageText, []byte(`{"t":"resume"}`))
+	done := make(chan struct{})
+	go func() { ch.Wait(context.Background()); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("resume did not release producer")
+	}
+
+	// a paused subscriber that disconnects must not leave the producer stuck
+	c.Write(ctx, websocket.MessageText, []byte(`{"t":"pause"}`))
+	time.Sleep(50 * time.Millisecond)
+	c.Close(websocket.StatusNormalClosure, "")
+	done2 := make(chan struct{})
+	go func() { ch.Wait(context.Background()); close(done2) }()
+	select {
+	case <-done2:
+	case <-time.After(time.Second):
+		t.Fatal("disconnect did not release producer")
+	}
+}

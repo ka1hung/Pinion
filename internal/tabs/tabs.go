@@ -369,6 +369,8 @@ func (t *Tab) connectLoop(isRetry bool) {
 func (t *Tab) pump(tr transport.Transport) error {
 	buf := make([]byte, 32*1024)
 	for {
+		// backpressure: stop reading while the UI is behind
+		t.ch.Wait(t.ctx)
 		n, err := tr.Read(buf)
 		if n > 0 {
 			t.decMu.Lock()

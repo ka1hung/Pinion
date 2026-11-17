@@ -2,8 +2,15 @@
 // over a local WebSocket (binary frames, no JSON wrapping). The server binds
 // only to 127.0.0.1 on a random port and requires a per-launch random token.
 //
-// Output is coalesced and flushed every 16ms so heavy output (cat of a large
-// file, boot logs) does not flood the WebView with tiny messages.
+// Output is sent as soon as it arrives when the channel is idle (so keystroke
+// echo is not delayed), and coalesced to at most one flush per 16ms while
+// output keeps coming (cat of a large file, boot logs) so the WebView is not
+// flooded with tiny messages.
+//
+// Flow control: the UI sends {"t":"pause"} when xterm.js falls behind and
+// {"t":"resume"} once it has caught up. Producers call Channel.Wait before
+// reading more from their source, so the backpressure reaches the PTY / socket
+// instead of piling up unbounded in the WebView.
 package stream
 
 import (
@@ -44,15 +51,91 @@ type Channel struct {
 	pending []byte
 	subs    map[*subscriber]struct{}
 	closed  bool
+
+	kick     chan struct{} // buffered(1): pending output to flush
+	done     chan struct{} // closed with the channel
+	paused   int           // subscribers currently asking for a pause
+	unpaused chan struct{} // closed while paused == 0
+}
+
+func newChannel(id string, handler Handler) *Channel {
+	c := &Channel{
+		id:       id,
+		handler:  handler,
+		subs:     map[*subscriber]struct{}{},
+		kick:     make(chan struct{}, 1),
+		done:     make(chan struct{}),
+		unpaused: make(chan struct{}),
+	}
+	close(c.unpaused)
+	go c.flushLoop()
+	return c
+}
+
+// flushLoop sends output on the leading edge, then throttles: after a flush
+// it waits flushInterval before the next one, coalescing whatever arrived.
+func (c *Channel) flushLoop() {
+	t := time.NewTimer(0)
+	<-t.C
+	for {
+		select {
+		case <-c.done:
+			return
+		case <-c.kick:
+		}
+		c.flush()
+		t.Reset(flushInterval)
+		select {
+		case <-c.done:
+			t.Stop()
+			return
+		case <-t.C:
+		}
+	}
+}
+
+// Wait blocks while the UI has asked for a pause. It returns early when the
+// channel closes or ctx is done. Producers call it before reading more input.
+func (c *Channel) Wait(ctx context.Context) {
+	c.mu.Lock()
+	ch := c.unpaused
+	c.mu.Unlock()
+	select {
+	case <-ch:
+	case <-c.done:
+	case <-ctx.Done():
+	}
+}
+
+// setPaused records a subscriber's pause state. Caller must not hold c.mu.
+func (c *Channel) setPaused(s *subscriber, on bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if s.paused == on {
+		return
+	}
+	s.paused = on
+	if on {
+		if c.paused == 0 {
+			c.unpaused = make(chan struct{})
+		}
+		c.paused++
+		return
+	}
+	c.paused--
+	if c.paused == 0 {
+		close(c.unpaused)
+	}
 }
 
 type subscriber struct {
 	// skip is how many bytes at the start of the next flush the subscriber
 	// already received through the replay at attach time.
-	skip int
-	out  chan []byte
-	done chan struct{}
-	once sync.Once
+	skip   int
+	paused bool // guarded by Channel.mu
+	out    chan []byte
+	done   chan struct{}
+	once   sync.Once
 }
 
 func (s *subscriber) close() { s.once.Do(func() { close(s.done) }) }
@@ -70,6 +153,10 @@ func (c *Channel) Write(p []byte) (int, error) {
 		// keep the tail; copy so the backing array does not grow forever
 		tail := c.replay[len(c.replay)-replayLimit/2:]
 		c.replay = append(make([]byte, 0, replayLimit), tail...)
+	}
+	select {
+	case c.kick <- struct{}{}:
+	default:
 	}
 	return len(p), nil
 }
@@ -151,7 +238,6 @@ func NewHub() (*Hub, error) {
 	mux.HandleFunc("/ws/{id}", h.serveWS)
 	h.srv = &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	go func() { _ = h.srv.Serve(ln) }()
-	go h.flushLoop()
 	return h, nil
 }
 
@@ -173,30 +259,9 @@ func (h *Hub) Close() error {
 	return h.srv.Shutdown(ctx)
 }
 
-func (h *Hub) flushLoop() {
-	t := time.NewTicker(flushInterval)
-	defer t.Stop()
-	for {
-		select {
-		case <-h.stop:
-			return
-		case <-t.C:
-			h.mu.RLock()
-			chs := make([]*Channel, 0, len(h.channels))
-			for _, c := range h.channels {
-				chs = append(chs, c)
-			}
-			h.mu.RUnlock()
-			for _, c := range chs {
-				c.flush()
-			}
-		}
-	}
-}
-
 // Open registers a channel.
 func (h *Hub) Open(id string, handler Handler) *Channel {
-	c := &Channel{id: id, handler: handler, subs: map[*subscriber]struct{}{}}
+	c := newChannel(id, handler)
 	h.mu.Lock()
 	if old := h.channels[id]; old != nil {
 		h.closeChannel(old)
@@ -215,6 +280,9 @@ func (h *Hub) Get(id string) *Channel {
 
 func (h *Hub) closeChannel(c *Channel) {
 	c.mu.Lock()
+	if !c.closed {
+		close(c.done)
+	}
 	c.closed = true
 	for s := range c.subs {
 		s.close()
@@ -276,6 +344,7 @@ func (h *Hub) serveWS(w http.ResponseWriter, r *http.Request) {
 	c.subs[sub] = struct{}{}
 	c.mu.Unlock()
 	defer func() {
+		c.setPaused(sub, false)
 		c.mu.Lock()
 		delete(c.subs, sub)
 		c.mu.Unlock()
@@ -323,8 +392,18 @@ func (h *Hub) serveWS(w http.ResponseWriter, r *http.Request) {
 			c.handler.Input(data)
 		case websocket.MessageText:
 			var m control
-			if json.Unmarshal(data, &m) == nil && strings.EqualFold(m.T, "resize") && m.Cols > 0 && m.Rows > 0 {
-				c.handler.Resize(m.Cols, m.Rows)
+			if json.Unmarshal(data, &m) != nil {
+				continue
+			}
+			switch strings.ToLower(m.T) {
+			case "resize":
+				if m.Cols > 0 && m.Rows > 0 {
+					c.handler.Resize(m.Cols, m.Rows)
+				}
+			case "pause":
+				c.setPaused(sub, true)
+			case "resume":
+				c.setPaused(sub, false)
 			}
 		}
 	}

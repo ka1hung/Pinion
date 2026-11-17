@@ -104,6 +104,11 @@ function stamp() {
 }
 const hexDigits = "0123456789ABCDEF";
 
+// Flow control watermarks (bytes handed to xterm.js but not yet parsed).
+// Above HIGH we ask the backend to stop reading; below LOW we resume.
+const FLOW_HIGH = 512 * 1024;
+const FLOW_LOW = 128 * 1024;
+
 class TermInstance {
   readonly id: string;
   term: Terminal;
@@ -128,6 +133,11 @@ class TermInstance {
   private reconnectTimer: number | null = null;
   private connectedOnce = false;
   private resizeObs: ResizeObserver;
+  /** Bytes written to xterm.js whose parse callback has not fired yet. */
+  private inFlight = 0;
+  private paused = false;
+  /** Bumped per WebSocket so callbacks from an old connection are ignored. */
+  private flowGen = 0;
 
   constructor(id: string) {
     this.id = id;
@@ -270,6 +280,10 @@ class TermInstance {
     ws.binaryType = "arraybuffer";
     this.ws = ws;
     ws.onopen = () => {
+      // a fresh subscriber starts unpaused on the backend
+      this.flowGen++;
+      this.inFlight = 0;
+      this.paused = false;
       if (this.connectedOnce) {
         // the server replays recent output on re-attach
         this.term.reset();
@@ -338,10 +352,28 @@ class TermInstance {
       this.promptTimer = window.setTimeout(() => this.checkPrompt(), 120);
     }
     const v = this.view;
-    if (v.hex) return this.term.write(this.toHex(b));
     if (v.json) return this.feedJSON(b);
-    if (v.timestamp) return this.term.write(this.withStamps(b));
-    this.term.write(b);
+    const data = v.hex ? this.toHex(b) : v.timestamp ? this.withStamps(b) : b;
+    this.writeFlow(data, b.length);
+  }
+
+  /** term.write with backpressure: counts bytes until xterm.js has parsed
+   * them and pauses the backend while too much is queued. */
+  private writeFlow(data: string | Uint8Array, n: number) {
+    const gen = this.flowGen;
+    this.inFlight += n;
+    if (!this.paused && this.inFlight > FLOW_HIGH) {
+      this.paused = true;
+      this.sendControl({ t: "pause" });
+    }
+    this.term.write(data, () => {
+      if (gen !== this.flowGen || this.disposed) return;
+      this.inFlight -= n;
+      if (this.paused && this.inFlight < FLOW_LOW) {
+        this.paused = false;
+        this.sendControl({ t: "resume" });
+      }
+    });
   }
 
   private withStamps(b: Uint8Array): string {
