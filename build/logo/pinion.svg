@@ -9,9 +9,13 @@
       <stop offset="1" stop-color="#0078d4"/>
     </linearGradient>
   </defs>
-  <rect x="80" y="80" width="864" height="864" rx="196" fill="url(#bg)"/>
+  <!-- Windows / Linux: near full-bleed; macOS uses pinion-macos.svg (Apple icon grid margins) -->
+  <rect x="16" y="16" width="992" height="992" rx="224" fill="url(#bg)"/>
+  <rect x="22" y="22" width="980" height="980" rx="218" fill="none" stroke="#4fc3ff" stroke-opacity="0.35" stroke-width="12"/>
+  <g transform="translate(512 512) scale(1.16) translate(-512 -512)">
   <path d="M789.1,471.8 L840.9,485.2 L840.9,538.8 L789.1,552.2 L772.1,615.8 L810.2,653.3 L783.5,699.6 L731.9,685.3 L685.3,731.9 L699.6,783.5 L653.3,810.2 L615.8,772.1 L552.2,789.1 L538.8,840.9 L485.2,840.9 L471.8,789.1 L408.2,772.1 L370.7,810.2 L324.4,783.5 L338.7,731.9 L292.1,685.3 L240.5,699.6 L213.8,653.3 L251.9,615.8 L234.9,552.2 L183.1,538.8 L183.1,485.2 L234.9,471.8 L251.9,408.2 L213.8,370.7 L240.5,324.4 L292.1,338.7 L338.7,292.1 L324.4,240.5 L370.7,213.8 L408.2,251.9 L471.8,234.9 L485.2,183.1 L538.8,183.1 L552.2,234.9 L615.8,251.9 L653.3,213.8 L699.6,240.5 L685.3,292.1 L731.9,338.7 L783.5,324.4 L810.2,370.7 L772.1,408.2 Z" fill="url(#gear)"/>
   <circle cx="512" cy="512" r="205" fill="#0f1d30"/>
   <path d="M410 432 L490 512 L410 592" fill="none" stroke="#ffffff" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M520 600 L630 600" stroke="#4fc3ff" stroke-width="44" stroke-linecap="round"/>
+  </g>
 </svg>

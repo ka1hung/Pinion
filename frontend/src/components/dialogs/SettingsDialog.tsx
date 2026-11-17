@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
-import { FolderOpen, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FolderOpen, Trash2, Upload } from "lucide-react";
 import { SystemService, errMsg, type store as S } from "../../lib/api";
 import { EditorService } from "../../lib/services";
 import { useStore, toast } from "../../lib/store";
 import { applyTheme } from "../../lib/actions";
-import { Modal, Field, Check } from "../ui";
+import { Modal, Field, Check, confirmDialog } from "../ui";
 import { useT } from "../../lib/i18n";
+import {
+  installedMonoFonts, fontChain, pickedFont, resolveFont, fontAvailable, parseFamilies,
+  importFont, removeFont, useUserFonts, userFamilies, type FontKind,
+} from "../../lib/fonts";
 
 interface KH {
   line: number;
@@ -113,9 +117,7 @@ export default function SettingsDialog() {
           )}
           {tab === "terminal" && (
             <>
-              <Field label={t("settings.font")}>
-                <input className="input font-mono" value={s.terminalFont} onChange={(e) => up({ terminalFont: e.target.value })} />
-              </Field>
+              <FontPicker kind="terminal" value={s.terminalFont} size={s.terminalFontSize} onChange={(v) => up({ terminalFont: v })} />
               <div className="grid grid-cols-2 gap-3">
                 <Field label={t("settings.fontSize")}>
                   <input className="input" type="number" value={s.terminalFontSize} onChange={(e) => up({ terminalFontSize: Number(e.target.value) })} />
@@ -152,9 +154,7 @@ export default function SettingsDialog() {
           )}
           {tab === "editor" && (
             <>
-              <Field label={t("settings.font")}>
-                <input className="input font-mono" value={s.editorFont} onChange={(e) => up({ editorFont: e.target.value })} />
-              </Field>
+              <FontPicker kind="editor" value={s.editorFont} size={s.editorFontSize} onChange={(v) => up({ editorFont: v })} />
               <div className="grid grid-cols-3 gap-3">
                 <Field label={t("settings.fontSize")}>
                   <input className="input" type="number" value={s.editorFontSize} onChange={(e) => up({ editorFontSize: Number(e.target.value) })} />
@@ -232,5 +232,118 @@ export default function SettingsDialog() {
         </div>
       </div>
     </Modal>
+  );
+}
+
+// Font dropdown: platform default, fonts imported into Pinion, detected installed
+// monospace fonts, or a custom CSS font-family (with a found / not-found check).
+function FontPicker(props: { kind: FontKind; value: string; size: number; onChange: (v: string) => void }) {
+  const t = useT();
+  const userFonts = useUserFonts((x) => x.fonts);
+  const imported = useMemo(() => userFamilies(userFonts), [userFonts]);
+  const installed = useMemo(() => installedMonoFonts().filter((f) => !imported.includes(f)), [imported]);
+  const all = useMemo(() => [...imported, ...installed], [imported, installed]);
+  const { kind, value } = props;
+  const picked = pickedFont(kind, value, all);
+  const [custom, setCustom] = useState(!!value.trim() && !picked);
+  const [busy, setBusy] = useState(false);
+  const sel = custom ? "__custom" : !value.trim() ? "" : picked ?? "__custom";
+  const first = parseFamilies(value)[0];
+  // Re-check after imports/removals change document.fonts.
+  const found = useMemo(() => (first ? fontAvailable(first) : true), [first, userFonts]);
+
+  const doImport = async () => {
+    setBusy(true);
+    try {
+      const fam = await importFont(t("settings.font.importTitle"));
+      if (fam) {
+        setCustom(false);
+        props.onChange(fontChain(kind, fam));
+        toast("success", t("settings.font.imported", { family: fam }));
+      }
+    } catch (e) {
+      toast("error", errMsg(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const doRemove = async (file: string) => {
+    if (!(await confirmDialog(t("settings.font.removeTitle"), t("settings.font.removeConfirm", { file }), { danger: true }))) return;
+    removeFont(file).catch((e) => toast("error", errMsg(e)));
+  };
+
+  return (
+    <div>
+      <Field label={t("settings.font")}>
+        <select
+          className="input"
+          value={sel}
+          onChange={(e) => {
+            const v = e.target.value;
+            setCustom(v === "__custom");
+            if (v === "__custom") return props.onChange(resolveFont(kind, value));
+            props.onChange(v ? fontChain(kind, v) : "");
+          }}
+        >
+          <option value="">{t("settings.font.default")}</option>
+          {imported.length > 0 && (
+            <optgroup label={t("settings.font.groupImported")}>
+              {imported.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </optgroup>
+          )}
+          <optgroup label={t("settings.font.groupInstalled")}>
+            {installed.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </optgroup>
+          <option value="__custom">{t("settings.font.custom")}</option>
+        </select>
+      </Field>
+      {sel === "__custom" && (
+        <>
+          <input
+            className="input mt-1 font-mono"
+            value={value}
+            placeholder={resolveFont(kind, "")}
+            onChange={(e) => props.onChange(e.target.value)}
+          />
+          {first && (
+            <div className={"mt-0.5 text-[12px] " + (found ? "text-mute" : "text-danger")}>
+              {found ? t("settings.font.found", { name: first }) : t("settings.font.notFound", { name: first })}
+            </div>
+          )}
+        </>
+      )}
+      <div
+        className="mt-1 truncate rounded border border-line px-2 py-1"
+        style={{ fontFamily: resolveFont(kind, value), fontSize: props.size || 14 }}
+      >
+        {t("settings.font.preview")}
+      </div>
+      <div className="mt-1.5 flex items-center gap-2">
+        <button className="btn" disabled={busy} onClick={doImport}>
+          <Upload size={14} className="mr-1 inline" />
+          {t("settings.font.import")}
+        </button>
+        <span className="text-[12px] text-mute">{t("settings.font.importHint")}</span>
+      </div>
+      {userFonts.length > 0 && (
+        <div className="mt-1.5 max-h-[96px] overflow-auto rounded border border-line">
+          {userFonts.map((f) => (
+            <div key={f.file} className="flex items-center gap-2 border-b border-line px-2 py-0.5 text-[12px] last:border-0">
+              <span className="min-w-0 flex-1 truncate">
+                {f.family}
+                <span className="ml-2 text-mute">{f.file}</span>
+              </span>
+              <button className="icon-btn" title={t("settings.font.removeTitle")} onClick={() => doRemove(f.file)}>
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

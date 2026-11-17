@@ -4,6 +4,7 @@ export * as TerminalService from "../../bindings/github.com/ka1hung/pinion/inter
 export * as SystemService from "../../bindings/github.com/ka1hung/pinion/internal/app/systemservice";
 export type * as store from "../../bindings/github.com/ka1hung/pinion/internal/store/models";
 export type * as tabs from "../../bindings/github.com/ka1hung/pinion/internal/tabs/models";
+export type * as fonts from "../../bindings/github.com/ka1hung/pinion/internal/fonts/models";
 
 import { Events } from "@wailsio/runtime";
 import { t } from "./i18n";

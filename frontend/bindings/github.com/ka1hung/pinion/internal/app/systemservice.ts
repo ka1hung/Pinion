@@ -12,6 +12,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as fonts$0 from "../fonts/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as prompt$0 from "../prompt/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -43,6 +46,14 @@ export function Charsets(): $CancellablePromise<string[] | null> {
  */
 export function HomeDir(): $CancellablePromise<string> {
     return $Call.ByID(3617291757);
+}
+
+/**
+ * ImportFont asks for a font file and copies it into Pinion's fonts folder.
+ * Returns nil when the dialog is cancelled.
+ */
+export function ImportFont(title: string): $CancellablePromise<fonts$0.Font | null> {
+    return $Call.ByID(3003867465, title);
 }
 
 /**
@@ -88,6 +99,13 @@ export function PickFolder(title: string): $CancellablePromise<string> {
 }
 
 /**
+ * RemoveFont deletes an imported font file.
+ */
+export function RemoveFont(file: string): $CancellablePromise<void> {
+    return $Call.ByID(1972670528, file);
+}
+
+/**
  * RemoveKnownHost deletes a known_hosts line.
  */
 export function RemoveKnownHost(line: number): $CancellablePromise<void> {
@@ -121,4 +139,11 @@ export function Settings(): $CancellablePromise<store$0.Settings> {
  */
 export function UnlockVault(master: string): $CancellablePromise<void> {
     return $Call.ByID(3258124343, master);
+}
+
+/**
+ * UserFonts lists fonts imported into Pinion (see package fonts).
+ */
+export function UserFonts(): $CancellablePromise<fonts$0.Font[] | null> {
+    return $Call.ByID(1509257752);
 }

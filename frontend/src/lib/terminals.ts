@@ -9,6 +9,7 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Clipboard, Browser } from "@wailsio/runtime";
 import { TerminalService, isMac } from "./api";
+import { resolveFont } from "./fonts";
 import { useStore, type ViewOpts } from "./store";
 import { openMenu } from "../components/ui";
 import { t } from "./i18n";
@@ -133,7 +134,7 @@ class TermInstance {
     const st = useStore.getState().settings;
     this.term = new Terminal({
       allowProposedApi: true,
-      fontFamily: st?.terminalFont || "Menlo, Consolas, monospace",
+      fontFamily: resolveFont("terminal", st?.terminalFont),
       fontSize: st?.terminalFontSize || 14,
       scrollback: st?.scrollback || 10000,
       cursorBlink: st?.cursorBlink ?? true,
@@ -417,7 +418,7 @@ class TermInstance {
   applySettings() {
     const st = useStore.getState().settings;
     if (!st) return;
-    this.term.options.fontFamily = st.terminalFont;
+    this.term.options.fontFamily = resolveFont("terminal", st.terminalFont);
     this.term.options.fontSize = st.terminalFontSize;
     this.term.options.scrollback = st.scrollback;
     this.term.options.cursorBlink = st.cursorBlink;

@@ -5,6 +5,7 @@ import "../lib/monaco";
 import { monaco, languageFor, languages } from "../lib/monaco";
 import { EditorService } from "../lib/services";
 import { SystemService, errMsg, isMac } from "../lib/api";
+import { resolveFont } from "../lib/fonts";
 import { useStore, toast, type EditorTab } from "../lib/store";
 import { docs, openExternal, type Doc } from "../lib/editor";
 import { themeVariant } from "../lib/terminals";
@@ -170,7 +171,7 @@ export default function EditorView({ tab }: { tab: EditorTab }) {
           }}
           options={{
             readOnly: doc.readOnly,
-            fontFamily: settings?.editorFont,
+            fontFamily: resolveFont("editor", settings?.editorFont),
             fontSize: settings?.editorFontSize || 14,
             tabSize: settings?.editorTabSize || 4,
             minimap: { enabled: settings?.editorMinimap ?? true },

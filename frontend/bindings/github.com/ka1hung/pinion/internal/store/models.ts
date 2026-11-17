@@ -151,6 +151,10 @@ export interface Settings {
      * system | zh-TW | en (UI text is translated in the frontend)
      */
     "language": string;
+
+    /**
+     * CSS font-family; empty = platform default (chosen in the frontend)
+     */
     "terminalFont": string;
     "terminalFontSize": number;
     "scrollback": number;
@@ -167,6 +171,10 @@ export interface Settings {
      */
     "termRightClick": string;
     "cursorBlink": boolean;
+
+    /**
+     * CSS font-family; empty = platform default
+     */
     "editorFont": string;
     "editorFontSize": number;
     "editorTabSize": number;

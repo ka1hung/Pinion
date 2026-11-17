@@ -115,7 +115,7 @@ type NetConfig struct {
 type Settings struct {
 	Theme            string `json:"theme"`    // system | dark | light
 	Language         string `json:"language"` // system | zh-TW | en (UI text is translated in the frontend)
-	TerminalFont     string `json:"terminalFont"`
+	TerminalFont     string `json:"terminalFont"` // CSS font-family; empty = platform default (chosen in the frontend)
 	TerminalFontSize int    `json:"terminalFontSize"`
 	Scrollback       int    `json:"scrollback"`
 	CopyOnSelect     bool   `json:"copyOnSelect"`
@@ -126,7 +126,7 @@ type Settings struct {
 	TermRightClick string `json:"termRightClick"`
 	CursorBlink    bool   `json:"cursorBlink"`
 
-	EditorFont        string `json:"editorFont"`
+	EditorFont        string `json:"editorFont"` // CSS font-family; empty = platform default
 	EditorFontSize    int    `json:"editorFontSize"`
 	EditorTabSize     int    `json:"editorTabSize"`
 	EditorMinimap     bool   `json:"editorMinimap"`
@@ -149,18 +149,23 @@ type Settings struct {
 	ServerIdleMinutes int    `json:"serverIdleMinutes"`
 }
 
+// Font chains that older versions stored as the default. Settings still holding
+// them are reset to "" so they follow the per-platform default instead.
+const (
+	legacyTerminalFont = `Menlo, Consolas, "DejaVu Sans Mono", "Noto Sans Mono CJK TC", monospace`
+	legacyEditorFont   = `Menlo, Consolas, "DejaVu Sans Mono", monospace`
+)
+
 // DefaultSettings returns sensible defaults.
 func DefaultSettings() Settings {
 	return Settings{
 		Theme:              "system",
 		Language:           "system",
-		TerminalFont:       `Menlo, Consolas, "DejaVu Sans Mono", "Noto Sans Mono CJK TC", monospace`,
 		TerminalFontSize:   14,
 		Scrollback:         10000,
 		CursorBlink:        true,
 		SmartCopyPaste:     true,
 		TermRightClick:     "menu",
-		EditorFont:         `Menlo, Consolas, "DejaVu Sans Mono", monospace`,
 		EditorFontSize:     14,
 		EditorTabSize:      4,
 		EditorMinimap:      true,

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ka1hung/pinion/internal/charset"
+	"github.com/ka1hung/pinion/internal/fonts"
 	"github.com/ka1hung/pinion/internal/prompt"
 	"github.com/ka1hung/pinion/internal/sshx"
 	"github.com/ka1hung/pinion/internal/store"
@@ -74,6 +75,29 @@ func (s *SystemService) Charsets() []string { return charset.Supported }
 // PickFile shows an open-file dialog.
 func (s *SystemService) PickFile(title string, filters []FileFilter) (string, error) {
 	return s.c.PickFile(title, filters)
+}
+
+// UserFonts lists fonts imported into Pinion (see package fonts).
+func (s *SystemService) UserFonts() ([]fonts.Font, error) { return fonts.List(fonts.Dir(s.c.Store.Dir())) }
+
+// ImportFont asks for a font file and copies it into Pinion's fonts folder.
+// Returns nil when the dialog is cancelled.
+func (s *SystemService) ImportFont(title string) (*fonts.Font, error) {
+	pat := "*" + strings.Join(fonts.Extensions(), ";*")
+	p, err := s.c.PickFile(title, []FileFilter{{Name: "Fonts", Pattern: pat}})
+	if err != nil || p == "" {
+		return nil, err
+	}
+	f, err := fonts.Import(fonts.Dir(s.c.Store.Dir()), p)
+	if err != nil {
+		return nil, err
+	}
+	return &f, nil
+}
+
+// RemoveFont deletes an imported font file.
+func (s *SystemService) RemoveFont(file string) error {
+	return fonts.Remove(fonts.Dir(s.c.Store.Dir()), file)
 }
 
 // PickFolder shows a folder dialog.

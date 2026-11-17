@@ -56,6 +56,12 @@ func Open(dir string) (*Store, error) {
 	if err := readJSON(filepath.Join(dir, "settings.json"), &s.settings); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("settings.json: %w", err)
 	}
+	if s.settings.TerminalFont == legacyTerminalFont {
+		s.settings.TerminalFont = ""
+	}
+	if s.settings.EditorFont == legacyEditorFont {
+		s.settings.EditorFont = ""
+	}
 	if s.settings.LogDir == "" {
 		home, _ := os.UserHomeDir()
 		s.settings.LogDir = filepath.Join(home, "Pinion", "logs")

@@ -9,6 +9,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"github.com/ka1hung/pinion/internal/app"
+	"github.com/ka1hung/pinion/internal/fonts"
 	"github.com/ka1hung/pinion/internal/store"
 )
 
@@ -30,7 +31,8 @@ func main() {
 		Description: "Cross-platform SSH / Serial / Telnet terminal with SFTP, tunnels and quick servers",
 		Services:    app.Services(core),
 		Assets: application.AssetOptions{
-			Handler: application.AssetFileServerFS(assets),
+			// Fonts imported in Settings are served from the config dir at /userfonts/.
+			Handler: fonts.Handler(fonts.Dir(dir), application.AssetFileServerFS(assets)),
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,

@@ -196,11 +196,19 @@ tasks:
     dir: build
     sources:
       - "appicon.png"
+      - "appicon-macos.png"
     generates:
       - "darwin/icons.icns"
       - "windows/icon.ico"
     cmds:
-      - wails3 generate icons -input appicon.png -macfilename darwin/icons.icns -windowsfilename windows/icon.ico
+      # appicon.png is near full-bleed for Windows/Linux; appicon-macos.png keeps Apple's icon-grid margins.
+      # Sources: logo/pinion.svg and logo/pinion-macos.svg.
+      - wails3 generate icons -input appicon.png -windowsfilename windows/icon.ico -macfilename appicon.unused.icns
+      - wails3 generate icons -input appicon-macos.png -macfilename darwin/icons.icns -windowsfilename appicon.unused.ico
+      - cmd: rm -f appicon.unused.icns appicon.unused.ico
+        platforms: [linux, darwin]
+      - cmd: powershell Remove-Item -ErrorAction SilentlyContinue appicon.unused.icns, appicon.unused.ico
+        platforms: [windows]
 
   dev:frontend:
     summary: Runs the frontend in development mode
