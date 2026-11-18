@@ -116,7 +116,7 @@ sudo apt install ./Pinion-<version>-linux-x64.deb
 Installing with `apt install ./file` pulls in the dependencies and also:
 
 - adds Pinion to the application menu;
-- lets TFTP use port 69 without running as root;
+- lets TFTP use port 69 without running as root. The permission goes only to a small helper, `pinion-bind`, which opens the port for Pinion and exits; Pinion itself has no extra privileges, so file drag and drop keeps working;
 - installs an AppArmor profile. Since Ubuntu 23.10, ordinary programs aren't allowed to create user namespaces by default, and the WebKitGTK sandbox behind Pinion's UI needs that; without it you get a blank window or the app closes right away. The profile applies to Pinion only.
 
 To uninstall:
@@ -133,10 +133,11 @@ sudo apt install libgtk-4-1 libwebkitgtk-6.0-4
 
 # 2. Extract and install to /usr/local/bin
 tar -xzf Pinion-<version>-linux-x64.tar.gz
-sudo install -m 0755 Pinion /usr/local/bin/Pinion
+sudo install -m 0755 Pinion pinion-bind /usr/local/bin/
 
 # 3. Let TFTP use port 69 (skip if you don't use TFTP)
-sudo setcap cap_net_bind_service=+ep /usr/local/bin/Pinion
+#    Give the permission to pinion-bind only; on Pinion itself it breaks file drag and drop
+sudo setcap cap_net_bind_service=+ep /usr/local/bin/pinion-bind
 
 # 4. Ubuntu 23.10 or later: install the AppArmor profile, or the window stays blank
 sudo cp apparmor/pinion /etc/apparmor.d/pinion

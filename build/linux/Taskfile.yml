@@ -28,6 +28,9 @@ tasks:
           OBFUSCATED: '{{.OBFUSCATED}}'
           GARBLE_ARGS: '{{.GARBLE_ARGS}}'
           CGO_ENABLED: '{{.CGO_ENABLED}}'
+      - task: build:helper
+        vars:
+          ARCH: '{{.ARCH}}'
     vars:
       DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}'
       OUTPUT: '{{ .OUTPUT | default .DEFAULT_OUTPUT }}'
@@ -65,6 +68,16 @@ tasks:
     env:
       GOOS: linux
       CGO_ENABLED: '{{.CGO_ENABLED | default (ternary "0" "1" (has "purego" (splitList "," (.EXTRA_TAGS | default ""))))}}'
+      GOARCH: '{{.ARCH | default ARCH}}'
+
+  build:helper:
+    summary: Builds pinion-bind, the small helper that opens ports below 1024 (pure Go, no cgo)
+    internal: true
+    cmds:
+      - go build -trimpath -buildvcs=false -ldflags="-w -s" -o {{.BIN_DIR}}/pinion-bind ./cmd/pinion-bind
+    env:
+      GOOS: linux
+      CGO_ENABLED: '0'
       GOARCH: '{{.ARCH | default ARCH}}'
 
   build:docker:

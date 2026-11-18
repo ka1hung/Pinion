@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/pin/tftp/v3"
+
+	"github.com/ka1hung/pinion/internal/privbind"
 )
 
 type tftpServer struct {
@@ -97,7 +99,7 @@ func startTFTP(m *Manager, cfg ServerConfig, addr string) (stopper, error) {
 	s := tftp.NewServer(read, write)
 	s.SetTimeout(5 * time.Second)
 	s.SetBlockSizeNegotiation(true)
-	conn, err := net.ListenPacket("udp", addr)
+	conn, err := privbind.ListenPacket("udp", addr)
 	if err != nil {
 		return nil, err
 	}

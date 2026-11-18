@@ -114,7 +114,7 @@ sudo apt install ./Pinion-<版本>-linux-x64.deb
 用 `apt install ./檔名` 安裝會自動補齊相依套件，並且：
 
 - 把 Pinion 加進應用程式選單；
-- 允許 TFTP 使用 69 埠，不必用 root 執行；
+- 允許 TFTP 使用 69 埠，不必用 root 執行。這個權限只給一個小工具 `pinion-bind`，它代 Pinion 開好 port 就結束，Pinion 本身不帶任何特權，所以拖放檔案等功能不受影響；
 - 安裝 AppArmor 設定檔。Ubuntu 23.10 以後預設限制一般程式建立 user namespace，Pinion 介面用的 WebKitGTK 沙箱需要這個權限，沒有的話會只看到空白視窗或直接關閉。這個設定檔只對 Pinion 生效。
 
 移除：
@@ -131,10 +131,11 @@ sudo apt install libgtk-4-1 libwebkitgtk-6.0-4
 
 # 2. 解壓縮並放到 /usr/local/bin
 tar -xzf Pinion-<版本>-linux-x64.tar.gz
-sudo install -m 0755 Pinion /usr/local/bin/Pinion
+sudo install -m 0755 Pinion pinion-bind /usr/local/bin/
 
 # 3. 允許 TFTP 使用 69 埠（不用 TFTP 可略過）
-sudo setcap cap_net_bind_service=+ep /usr/local/bin/Pinion
+#    權限只加在 pinion-bind 上；不要加在 Pinion 本身，否則拖放檔案會失效
+sudo setcap cap_net_bind_service=+ep /usr/local/bin/pinion-bind
 
 # 4. Ubuntu 23.10 以後：安裝 AppArmor 設定檔，否則開啟時會是空白視窗
 sudo cp apparmor/pinion /etc/apparmor.d/pinion

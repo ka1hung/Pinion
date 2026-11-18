@@ -18,6 +18,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/ka1hung/pinion/internal/privbind"
 )
 
 // Kinds.
@@ -351,7 +353,11 @@ func FriendlyBindError(kind, addr string, port int, err error) error {
 	case errors.Is(err, syscall.EACCES) || strings.Contains(low, "permission denied") || strings.Contains(low, "forbidden by its access permissions"):
 		switch runtime.GOOS {
 		case "linux":
-			return fmt.Errorf("%s: permission denied binding %s. Ports below 1024 need root on Linux: run `sudo setcap cap_net_bind_service=+ep <path to Pinion>` once, or use a port above 1024", strings.ToUpper(kind), addr)
+			proto := "tcp"
+			if kind == KindTFTP {
+				proto = "udp"
+			}
+			return fmt.Errorf("%s: permission denied binding %s. %s", strings.ToUpper(kind), addr, privbind.LinuxHint(proto, port, err))
 		case "windows":
 			return fmt.Errorf("%s: permission denied binding %s. The port may be reserved or blocked; allow Pinion through Windows Defender Firewall or choose another port", strings.ToUpper(kind), addr)
 		default:

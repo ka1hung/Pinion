@@ -14,6 +14,8 @@ import (
 
 	ftpserver "github.com/fclairamb/ftpserverlib"
 	"github.com/spf13/afero"
+
+	"github.com/ka1hung/pinion/internal/privbind"
 )
 
 type ftpServer struct {
@@ -59,7 +61,7 @@ func startFTP(m *Manager, cfg ServerConfig, addr string) (stopper, error) {
 	if err != nil {
 		return nil, err
 	}
-	ln, err := net.Listen("tcp", addr)
+	ln, err := privbind.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}

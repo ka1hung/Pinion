@@ -18,10 +18,13 @@ else
   echo "Warning: update-mime-database command not found. Custom URL schemes may not be immediately recognized." >&2
 fi
 
-# Allow the built-in TFTP/FTP/HTTP servers to bind ports below 1024 (e.g. TFTP 69)
-# without running Pinion as root.
+# Let the built-in TFTP/FTP/HTTP servers use ports below 1024 (e.g. TFTP 69).
+# The capability goes on the small pinion-bind helper, never on Pinion itself:
+# a GUI process with a file capability is made non-dumpable, which locks
+# /proc/<pid> and breaks file drag and drop through xdg-desktop-portal.
 if command -v setcap >/dev/null 2>&1; then
-  setcap cap_net_bind_service=+ep /usr/local/bin/Pinion || echo "Warning: setcap failed; TFTP on port 69 will need root." >&2
+  setcap -r /usr/local/bin/Pinion 2>/dev/null || true   # clear it if an older version set it
+  setcap cap_net_bind_service=+ep /usr/local/bin/pinion-bind || echo "Warning: setcap failed; TFTP on port 69 will need root." >&2
 fi
 
 # Ubuntu 23.10+ blocks unprivileged user namespaces unless an AppArmor profile

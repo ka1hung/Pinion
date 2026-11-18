@@ -6,7 +6,7 @@
 name: "pinion"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.1.4"
+version: "0.1.5"
 section: "default"
 priority: "extra"
 maintainer: "Pinion contributors <noreply@github.com>"
@@ -19,6 +19,12 @@ release: "1"
 contents:
   - src: "./bin/Pinion"
     dst: "/usr/local/bin/Pinion"
+  # Opens TFTP 69 / FTP 21 / HTTP 80,443 for Pinion; the only file given
+  # cap_net_bind_service (see postinstall.sh and internal/privbind).
+  - src: "./bin/pinion-bind"
+    dst: "/usr/local/bin/pinion-bind"
+    file_info:
+      mode: 0755
   - src: "./build/appicon.png"
     dst: "/usr/share/icons/hicolor/128x128/apps/Pinion.png"
   - src: "./build/linux/Pinion.desktop"

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,6 +14,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/ka1hung/pinion/internal/privbind"
 )
 
 type httpServer struct {
@@ -47,7 +48,7 @@ type fileHandler struct {
 }
 
 func startHTTP(m *Manager, cfg ServerConfig, addr string) (stopper, error) {
-	ln, err := net.Listen("tcp", addr)
+	ln, err := privbind.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}

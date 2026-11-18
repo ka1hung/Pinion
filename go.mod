@@ -17,6 +17,7 @@ require (
 	go.bug.st/serial v1.8.0
 	golang.org/x/crypto v0.59.0
 	golang.org/x/image v0.45.0
+	golang.org/x/sys v0.50.0
 	golang.org/x/text v0.44.0
 )
 
@@ -30,6 +31,5 @@ require (
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/u-root/u-root v0.16.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/term v0.48.0 // indirect
 )

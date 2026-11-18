@@ -16,6 +16,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/ka1hung/pinion/internal/privbind"
 	"github.com/ka1hung/pinion/internal/store"
 )
 
@@ -80,7 +81,7 @@ func Start(client *ssh.Client, t store.Tunnel) (*Forwarder, error) {
 	var err error
 	switch t.Kind {
 	case "L", "D":
-		f.ln, err = net.Listen("tcp", BindAddr(t))
+		f.ln, err = privbind.Listen("tcp", BindAddr(t))
 		if err != nil {
 			return nil, FriendlyBindError(BindAddr(t), err)
 		}
@@ -258,7 +259,11 @@ func FriendlyBindError(addr string, err error) error {
 		hint := "choose a port above 1024"
 		switch runtime.GOOS {
 		case "linux":
-			hint = "ports below 1024 need root on Linux: choose a port above 1024, or run `sudo setcap cap_net_bind_service=+ep <path to Pinion>`"
+			port := 0
+			if _, ps, e := net.SplitHostPort(addr); e == nil {
+				port, _ = strconv.Atoi(ps)
+			}
+			hint = privbind.LinuxHint("tcp", port, err)
 		case "windows":
 			hint = "the port may be reserved by Windows or blocked by policy; choose another port"
 		}
