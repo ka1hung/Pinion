@@ -2,6 +2,8 @@
 export * as SessionService from "../../bindings/github.com/ka1hung/pinion/internal/app/sessionservice";
 export * as TerminalService from "../../bindings/github.com/ka1hung/pinion/internal/app/terminalservice";
 export * as SystemService from "../../bindings/github.com/ka1hung/pinion/internal/app/systemservice";
+export * as MonitorService from "../../bindings/github.com/ka1hung/pinion/internal/app/monitorservice";
+export type * as monitor from "../../bindings/github.com/ka1hung/pinion/internal/monitor/models";
 export type * as store from "../../bindings/github.com/ka1hung/pinion/internal/store/models";
 export type * as tabs from "../../bindings/github.com/ka1hung/pinion/internal/tabs/models";
 export type * as fonts from "../../bindings/github.com/ka1hung/pinion/internal/fonts/models";

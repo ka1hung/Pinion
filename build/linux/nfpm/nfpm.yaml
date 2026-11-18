@@ -6,7 +6,7 @@
 name: "pinion"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.1.5"
+version: "0.1.6"
 section: "default"
 priority: "extra"
 maintainer: "Pinion contributors <noreply@github.com>"
@@ -28,7 +28,8 @@ contents:
   - src: "./build/appicon.png"
     dst: "/usr/share/icons/hicolor/128x128/apps/Pinion.png"
   - src: "./build/linux/Pinion.desktop"
-    dst: "/usr/share/applications/Pinion.desktop"
+    # Named after the application id (main.go) so GNOME pairs the window with it.
+    dst: "/usr/share/applications/io.github.ka1hung.pinion.desktop"
   - src: "./build/linux/apparmor/pinion"
     dst: "/usr/share/pinion/apparmor/pinion"
     file_info:

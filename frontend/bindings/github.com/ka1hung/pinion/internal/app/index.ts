@@ -3,6 +3,7 @@
 
 import * as EditorService from "./editorservice.js";
 import * as ImportService from "./importservice.js";
+import * as MonitorService from "./monitorservice.js";
 import * as SFTPService from "./sftpservice.js";
 import * as SerialService from "./serialservice.js";
 import * as ServerService from "./serverservice.js";
@@ -13,6 +14,7 @@ import * as TunnelService from "./tunnelservice.js";
 export {
     EditorService,
     ImportService,
+    MonitorService,
     SFTPService,
     SerialService,
     ServerService,

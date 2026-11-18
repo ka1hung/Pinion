@@ -20,6 +20,7 @@ import * as servers from "./servers";
 import * as tunnels from "./tunnels";
 import * as workspace from "./workspace";
 import * as multiExec from "./multiExec";
+import * as monitor from "./monitor";
 
 export const zh = {
   ...common.zh,
@@ -42,6 +43,7 @@ export const zh = {
   ...tunnels.zh,
   ...workspace.zh,
   ...multiExec.zh,
+  ...monitor.zh,
 };
 
 export const en: Record<keyof typeof zh, string> = {
@@ -65,4 +67,5 @@ export const en: Record<keyof typeof zh, string> = {
   ...tunnels.en,
   ...workspace.en,
   ...multiExec.en,
+  ...monitor.en,
 };

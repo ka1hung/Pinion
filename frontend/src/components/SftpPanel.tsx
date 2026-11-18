@@ -75,6 +75,25 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
   const [loading, setLoading] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const [dropHover, setDropHover] = useState(false);
+  // dragenter/dragleave fire for every child the pointer crosses, so count
+  // them; the outline is only for files dragged in from outside, not rows
+  // dragged within (or out of) the list.
+  const dropDepth = useRef(0);
+  const isInternalDrag = (e: React.DragEvent) => e.dataTransfer.types.includes("pinion/sftp");
+  useEffect(() => {
+    if (!dropHover) return;
+    // Safety net: a drag that ends anywhere (drop elsewhere, Esc) clears it.
+    const reset = () => {
+      dropDepth.current = 0;
+      setDropHover(false);
+    };
+    window.addEventListener("drop", reset, true);
+    window.addEventListener("dragend", reset, true);
+    return () => {
+      window.removeEventListener("drop", reset, true);
+      window.removeEventListener("dragend", reset, true);
+    };
+  }, [dropHover]);
   const dirRef = useRef(dir);
   dirRef.current = dir;
 
@@ -136,6 +155,7 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
         if (c.tabId === tab.id && (!c.dir || c.dir === dirRef.current)) load(dirRef.current);
       }),
       on<{ files: string[]; target?: { id: string } }>("files:dropped", (d) => {
+        dropDepth.current = 0;
         setDropHover(false);
         if (d.target?.id !== "sftp-drop-" + tab.id || !d.files?.length) return;
         SFTPService.Upload(tab.id, d.files, dirRef.current).catch((e) => toast("error", errMsg(e)));
@@ -369,8 +389,18 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
       id={"sftp-drop-" + tab.id}
       data-file-drop-target
       className={"sftp-panel relative flex h-full flex-col bg-side " + (dropHover ? "outline-2 -outline-offset-2 outline-accent outline-dashed" : "")}
-      onDragEnter={() => setDropHover(true)}
-      onDragLeave={(e) => e.currentTarget === e.target && setDropHover(false)}
+      onDragEnter={(e) => {
+        if (isInternalDrag(e)) return;
+        dropDepth.current++;
+        setDropHover(true);
+      }}
+      onDragLeave={(e) => {
+        if (isInternalDrag(e)) return;
+        if (--dropDepth.current <= 0) {
+          dropDepth.current = 0;
+          setDropHover(false);
+        }
+      }}
     >
       <div className="flex items-center gap-0.5 border-b border-line px-1.5 py-1">
         <button className="icon-btn" title={tr("sftp.up")} onClick={goUp}>
@@ -520,6 +550,7 @@ export default function SftpPanel({ tab }: { tab: TermTab }) {
                 }}
                 onDoubleClick={() => openEntry(e)}
                 draggable
+                onDragEnd={() => setDropDir("")}
                 onDragStart={(ev) => {
                   const list = sel.has(e.path) ? selected : [e];
                   ev.dataTransfer.setData("pinion/sftp", JSON.stringify({ tabId: tab.id, paths: list.map((x) => x.path) }));

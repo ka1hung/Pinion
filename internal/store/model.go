@@ -144,6 +144,9 @@ type Settings struct {
 	// After SSH login run `bind 'set completion-ignore-case on'` (bash) so
 	// Tab completion ignores case. Off by default: non-bash CLIs would print an error.
 	SSHCompletionIgnoreCase bool `json:"sshCompletionIgnoreCase"`
+	// Show the remote resource bar (CPU / memory / network / disks) under SSH
+	// terminals. Off by default: it runs a small read-only probe every few seconds.
+	RemoteMonitor bool `json:"remoteMonitor"`
 
 	ServerRoot        string `json:"serverRoot"` // default folder for TFTP/HTTP/FTP
 	ServerIdleMinutes int    `json:"serverIdleMinutes"`

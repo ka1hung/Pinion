@@ -208,6 +208,12 @@ export interface Settings {
     "sshCompletionIgnoreCase": boolean;
 
     /**
+     * Show the remote resource bar (CPU / memory / network / disks) under SSH
+     * terminals. Off by default: it runs a small read-only probe every few seconds.
+     */
+    "remoteMonitor": boolean;
+
+    /**
      * default folder for TFTP/HTTP/FTP
      */
     "serverRoot": string;

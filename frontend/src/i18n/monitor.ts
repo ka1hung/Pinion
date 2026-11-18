@@ -1,0 +1,38 @@
+// Remote resource bar under SSH terminals. Keys are prefixed "monitor." ; en must list exactly the same keys.
+export const zh = {
+  "monitor.toggle": "遠端資源監控",
+  "monitor.toggleTitle": "在終端機下方顯示遠端主機的 CPU、記憶體、網路與磁碟用量（每 3 秒讀取一次 /proc，唯讀）",
+  "monitor.host": "主機",
+  "monitor.cpu": "CPU 使用率（1 分鐘負載 {load}）",
+  "monitor.mem": "記憶體：已用 {used} / 共 {total}",
+  "monitor.swap": "Swap：已用 {used} / 共 {total}",
+  "monitor.up": "上傳速度",
+  "monitor.down": "下載速度",
+  "monitor.uptime": "開機時間",
+  "monitor.days": "{n} 天",
+  "monitor.hours": "{n} 小時",
+  "monitor.user": "登入使用者",
+  "monitor.disk": "{mount}：已用 {used} / 共 {total}",
+  "monitor.loading": "讀取遠端資源中…",
+  "monitor.unsupported": "這台主機不支援資源監控（需要 Linux 的 /proc）",
+  "monitor.error": "無法讀取遠端資源：{msg}",
+} as const;
+
+export const en: Record<keyof typeof zh, string> = {
+  "monitor.toggle": "Remote monitoring",
+  "monitor.toggleTitle": "Show the remote host's CPU, memory, network and disk usage under the terminal (reads /proc every 3 s, read-only)",
+  "monitor.host": "Host",
+  "monitor.cpu": "CPU usage (1-min load {load})",
+  "monitor.mem": "Memory: {used} used of {total}",
+  "monitor.swap": "Swap: {used} used of {total}",
+  "monitor.up": "Upload rate",
+  "monitor.down": "Download rate",
+  "monitor.uptime": "Uptime",
+  "monitor.days": "{n} days",
+  "monitor.hours": "{n} h",
+  "monitor.user": "Logged-in user",
+  "monitor.disk": "{mount}: {used} used of {total}",
+  "monitor.loading": "Reading remote resources…",
+  "monitor.unsupported": "Resource monitoring isn't available on this host (needs Linux /proc)",
+  "monitor.error": "Can't read remote resources: {msg}",
+};

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  FolderTree, FileDown, Eraser, Search, RotateCw, Binary, Clock, Braces, ScrollText, ChevronUp, ChevronDown, X, Send,
+  FolderTree, FileDown, Eraser, Search, RotateCw, Binary, Clock, Braces, ScrollText, ChevronUp, ChevronDown, X, Send, Activity,
 } from "lucide-react";
 import { useStore, toast, type TermTab } from "../lib/store";
 import { terminals } from "../lib/terminals";
 import { TerminalService, SystemService, errMsg } from "../lib/api";
 import { Check } from "./ui";
+import MonitorBar from "./MonitorBar";
 import { useT } from "../lib/i18n";
 
 function Lights({ id }: { id: string }) {
@@ -158,6 +159,14 @@ export default function TerminalView({ tab }: { tab: TermTab }) {
   const updateTab = useStore((s) => s.updateTab);
   const [searching, setSearching] = useState(false);
   const sftpShown = useStore((s) => s.sidebarOpen && s.sidebar === "sftp");
+  const monitorOn = useStore((s) => !!s.settings?.remoteMonitor);
+  const toggleMonitor = () => {
+    const st = useStore.getState().settings;
+    if (!st) return;
+    const ns = { ...st, remoteMonitor: !st.remoteMonitor };
+    useStore.getState().setSettings(ns);
+    SystemService.SaveSettings(ns).catch((e) => toast("error", errMsg(e)));
+  };
   const [dtr, setDtr] = useState(true);
   const [rts, setRts] = useState(true);
 
@@ -286,6 +295,11 @@ export default function TerminalView({ tab }: { tab: TermTab }) {
             <FolderTree size={14} /> SFTP
           </ToolBtn>
         )}
+        {tab.type === "ssh" && (
+          <ToolBtn on={monitorOn} title={t("monitor.toggleTitle")} onClick={toggleMonitor}>
+            <Activity size={14} />
+          </ToolBtn>
+        )}
       </div>
       <div className="flex min-h-0 flex-1">
         <div className="relative min-w-0 flex-1 bg-[var(--c-base)]">
@@ -294,6 +308,7 @@ export default function TerminalView({ tab }: { tab: TermTab }) {
         </div>
       </div>
       {(isSerial || isNet) && <SendBar tab={tab} />}
+      {tab.type === "ssh" && monitorOn && tab.state === "connected" && <MonitorBar tabId={tab.id} />}
     </div>
   );
 }

@@ -37,6 +37,13 @@ func main() {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
+		// The GTK application id is also the Wayland app_id / WM_CLASS that
+		// GNOME uses to match the window with its .desktop file (and icon);
+		// it must equal the installed desktop file's name and StartupWMClass.
+		// Wails' default, org.wails.pinion, matched nothing (gear icon).
+		Linux: application.LinuxOptions{
+			ApplicationID: "io.github.ka1hung.pinion",
+		},
 		OnShutdown: core.Shutdown,
 	})
 	core.SetApp(a)
